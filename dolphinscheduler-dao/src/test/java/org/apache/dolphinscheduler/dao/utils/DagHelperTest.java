@@ -83,9 +83,7 @@ public class DagHelperTest {
         taskNodes.add(subNode);
         taskNodes.add(subNextNode);
 
-        ProcessDag processDag = new ProcessDag();
-        processDag.setEdges(taskNodeRelations);
-        processDag.setNodes(taskNodes);
+        ProcessDag processDag = new ProcessDag(taskNodeRelations, taskNodes);
         DAG<String, TaskNode, TaskNodeRelation> dag = DagHelper.buildDagGraph(processDag);
         boolean canSubmit = DagHelper.haveAllNodeAfterNode(parentNodeCode, dag);
         Assert.assertTrue(canSubmit);
@@ -422,9 +420,7 @@ public class DagHelperTest {
         List<TaskNode> destTaskNodeList = DagHelper.generateFlowNodeListByStartNode(taskNodeList,
                 startNodes, recoveryNodes, TaskDependType.TASK_POST);
         List<TaskNodeRelation> taskNodeRelations = DagHelper.generateRelationListByFlowNodes(destTaskNodeList);
-        ProcessDag processDag = new ProcessDag();
-        processDag.setEdges(taskNodeRelations);
-        processDag.setNodes(destTaskNodeList);
+        ProcessDag processDag = new ProcessDag(taskNodeRelations, destTaskNodeList);
         return DagHelper.buildDagGraph(processDag);
     }
 
@@ -489,9 +485,7 @@ public class DagHelperTest {
         List<TaskNode> destTaskNodeList = DagHelper.generateFlowNodeListByStartNode(taskNodeList,
                 startNodes, recoveryNodes, TaskDependType.TASK_POST);
         List<TaskNodeRelation> taskNodeRelations = DagHelper.generateRelationListByFlowNodes(destTaskNodeList);
-        ProcessDag processDag = new ProcessDag();
-        processDag.setEdges(taskNodeRelations);
-        processDag.setNodes(destTaskNodeList);
+        ProcessDag processDag = new ProcessDag(taskNodeRelations, destTaskNodeList);
         return DagHelper.buildDagGraph(processDag);
     }
 

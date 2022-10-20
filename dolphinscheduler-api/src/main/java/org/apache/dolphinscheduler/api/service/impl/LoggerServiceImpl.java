@@ -126,10 +126,7 @@ public class LoggerServiceImpl extends BaseServiceImpl implements LoggerService 
     public RollViewLogResponse queryLog(User loginUser, long projectCode, int taskInstId, int skipLineNum, int limit) {
         Project project = projectMapper.queryByCode(projectCode);
         // check user access for project
-        Map<String, Object> result = projectService.checkProjectAndAuth(loginUser, project, projectCode, VIEW_LOG);
-        if (result.get(Constants.STATUS) != Status.SUCCESS) {
-            throw new ServiceException((Status) result.get(Constants.STATUS));
-        }
+        projectService.checkProjectAndAuth(loginUser, project, projectCode, VIEW_LOG);
         // check whether the task instance can be found
         TaskInstance task = processService.findTaskInstanceById(taskInstId);
         if (task == null || StringUtils.isBlank(task.getHost())) {
@@ -155,10 +152,7 @@ public class LoggerServiceImpl extends BaseServiceImpl implements LoggerService 
     public byte[] getLogBytes(User loginUser, long projectCode, int taskInstId) {
         Project project = projectMapper.queryByCode(projectCode);
         // check user access for project
-        Map<String, Object> result = projectService.checkProjectAndAuth(loginUser, project, projectCode, DOWNLOAD_LOG);
-        if (result.get(Constants.STATUS) != Status.SUCCESS) {
-            throw new ServiceException("user has no permission");
-        }
+        projectService.checkProjectAndAuth(loginUser, project, projectCode, DOWNLOAD_LOG);
         // check whether the task instance can be found
         TaskInstance task = processService.findTaskInstanceById(taskInstId);
         if (task == null || StringUtils.isBlank(task.getHost())) {
@@ -184,10 +178,12 @@ public class LoggerServiceImpl extends BaseServiceImpl implements LoggerService 
         Host host = Host.of(taskInstance.getHost());
         StringBuilder log = new StringBuilder();
         if (skipLineNum == 0) {
-            String head = String.format(LOG_HEAD_FORMAT, taskInstance.getLogPath(), host, Constants.SYSTEM_LINE_SEPARATOR);
+            String head =
+                    String.format(LOG_HEAD_FORMAT, taskInstance.getLogPath(), host, Constants.SYSTEM_LINE_SEPARATOR);
             log.append(head);
         }
-        RollViewLogResponseCommand rollViewLogResponseCommand = logClient.rollViewLog(host, taskInstance.getLogPath(), skipLineNum, limit);
+        RollViewLogResponseCommand rollViewLogResponseCommand =
+                logClient.rollViewLog(host, taskInstance.getLogPath(), skipLineNum, limit);
         if (rollViewLogResponseCommand.getResponseStatus() != RollViewLogResponseCommand.Status.SUCCESS) {
             log.append(rollViewLogResponseCommand.getResponseStatus().getDesc());
             return RollViewLogResponse.builder()
@@ -201,7 +197,8 @@ public class LoggerServiceImpl extends BaseServiceImpl implements LoggerService 
                 .log(log.toString())
                 .currentLogLineNumber(rollViewLogResponseCommand.getCurrentLineNumber())
                 .hasNext(!taskInstance.getState().typeIsFinished()
-                        || rollViewLogResponseCommand.getCurrentLineNumber() < rollViewLogResponseCommand.getCurrentTotalLineNumber())
+                        || rollViewLogResponseCommand.getCurrentLineNumber() < rollViewLogResponseCommand
+                                .getCurrentTotalLineNumber())
                 .build();
     }
 

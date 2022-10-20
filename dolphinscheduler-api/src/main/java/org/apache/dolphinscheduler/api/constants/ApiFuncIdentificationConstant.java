@@ -95,6 +95,7 @@ public class ApiFuncIdentificationConstant {
     public static final String INSTANCE_DELETE = "project:process-instance:delete";
     public static final String INSTANCE_BATCH_DELETE = "project:process-instance:batch-delete";
     public static final String FORCED_SUCCESS = "project:task-instance:force-success";
+    public static final String CLEAN_TASK_INSTANCE_STATE = "project:task-instance:clean-state";
     public static final String VIEW_LOG = "project:log:detail";
     public static final String DOWNLOAD_LOG = "project:log:download-log";
     public static final String PROJECT_OVERVIEW = "project:overview:view";

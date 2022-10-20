@@ -247,6 +247,7 @@ public class MasterSchedulerBootstrap extends BaseDaemonThread implements AutoCl
         return processInstances;
     }
 
+    // todo: move this to handle command
     private void sendRpcCommand(ProcessInstance processInstance) {
         ProcessDefinition processDefinition = processInstance.getProcessDefinition();
         if (processDefinition.getExecutionType().typeIsSerialPriority()) {

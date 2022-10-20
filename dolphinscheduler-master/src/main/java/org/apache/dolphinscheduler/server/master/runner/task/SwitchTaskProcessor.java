@@ -21,15 +21,13 @@ import com.google.auto.service.AutoService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
-import org.apache.dolphinscheduler.common.utils.NetUtils;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.plugin.task.api.enums.DependResult;
 import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.plugin.task.api.model.Property;
 import org.apache.dolphinscheduler.plugin.task.api.model.SwitchResultVo;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.SwitchParameters;
-import org.apache.dolphinscheduler.server.utils.LogUtils;
-import org.apache.dolphinscheduler.server.utils.SwitchTaskUtils;
+import org.apache.dolphinscheduler.server.master.utils.SwitchTaskUtils;
 
 import java.util.Date;
 import java.util.HashMap;

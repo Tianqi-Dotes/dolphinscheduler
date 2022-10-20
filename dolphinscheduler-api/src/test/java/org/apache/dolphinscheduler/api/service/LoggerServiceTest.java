@@ -140,8 +140,6 @@ public class LoggerServiceTest {
         User loginUser = new User();
         loginUser.setId(-1);
         loginUser.setUserType(UserType.GENERAL_USER);
-        Map<String, Object> result = new HashMap<>();
-        putMsg(result, Status.SUCCESS, projectCode);
         TaskInstance taskInstance = new TaskInstance();
         Mockito.when(processService.findTaskInstanceById(1)).thenReturn(taskInstance);
         TaskDefinition taskDefinition = new TaskDefinition();
@@ -152,7 +150,7 @@ public class LoggerServiceTest {
         taskInstance.setId(1);
         taskInstance.setHost("127.0.0.1:8080");
         taskInstance.setLogPath("/temp/log");
-        Mockito.when(projectService.checkProjectAndAuth(loginUser, project, projectCode, VIEW_LOG)).thenReturn(result);
+        Mockito.doNothing().when(projectService).checkProjectAndAuth(loginUser, project, projectCode, VIEW_LOG);
         Mockito.when(processService.findTaskInstanceById(1)).thenReturn(taskInstance);
         Mockito.when(taskDefinitionMapper.queryByCode(taskInstance.getTaskCode())).thenReturn(taskDefinition);
         RollViewLogResponse rollViewLogResponse = loggerService.queryLog(loginUser, projectCode, 1, 1, 1);
@@ -168,8 +166,6 @@ public class LoggerServiceTest {
         User loginUser = new User();
         loginUser.setId(-1);
         loginUser.setUserType(UserType.GENERAL_USER);
-        Map<String, Object> result = new HashMap<>();
-        putMsg(result, Status.SUCCESS, projectCode);
         TaskInstance taskInstance = new TaskInstance();
         TaskDefinition taskDefinition = new TaskDefinition();
         taskDefinition.setProjectCode(projectCode);
@@ -179,8 +175,7 @@ public class LoggerServiceTest {
         taskInstance.setId(1);
         taskInstance.setHost("127.0.0.1:8080");
         taskInstance.setLogPath("/temp/log");
-        Mockito.when(projectService.checkProjectAndAuth(loginUser, project, projectCode, DOWNLOAD_LOG))
-                .thenReturn(result);
+        Mockito.doNothing().when(projectService).checkProjectAndAuth(loginUser, project, projectCode, DOWNLOAD_LOG);
         Mockito.when(processService.findTaskInstanceById(1)).thenReturn(taskInstance);
         Mockito.when(taskDefinitionMapper.queryByCode(taskInstance.getTaskCode())).thenReturn(taskDefinition);
         loggerService.getLogBytes(loginUser, projectCode, 1);

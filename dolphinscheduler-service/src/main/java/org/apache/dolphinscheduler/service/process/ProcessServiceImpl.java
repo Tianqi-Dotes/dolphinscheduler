@@ -383,6 +383,7 @@ public class ProcessServiceImpl implements ProcessService {
     public int createCommand(Command command) {
         int result = 0;
         if (command != null) {
+            // todo: we need to move inject command param to other place
             // add command timezone
             Schedule schedule = scheduleMapper.queryByProcessDefinitionCode(command.getProcessDefinitionCode());
             Map<String, String> commandParams = JSONUtils.toMap(command.getCommandParam());
@@ -897,6 +898,7 @@ public class ProcessServiceImpl implements ProcessService {
      * @param host    host
      * @return process instance
      */
+    // todo: kill this method
     protected @Nullable ProcessInstance constructProcessInstance(Command command, String host) {
         ProcessInstance processInstance;
         ProcessDefinition processDefinition;
@@ -1040,6 +1042,10 @@ public class ProcessServiceImpl implements ProcessService {
                 initComplementDataParam(processDefinition, processInstance, cmdParam);
                 break;
             case SCHEDULER:
+                break;
+            case START_FROM_STATE_CLEAN_TASKS:
+                processInstance.setRunTimes(runTime + 1);
+                processInstance.setCommandParam(JSONUtils.toJsonString(cmdParam));
                 break;
             default:
                 break;

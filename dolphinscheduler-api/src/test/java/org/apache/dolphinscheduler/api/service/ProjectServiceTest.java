@@ -17,12 +17,9 @@
  */
 package org.apache.dolphinscheduler.api.service;
 
-import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT;
-import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT_CREATE;
-import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT_DELETE;
-import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT_UPDATE;
-
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.dolphinscheduler.api.enums.Status;
+import org.apache.dolphinscheduler.api.exceptions.ServiceException;
 import org.apache.dolphinscheduler.api.permission.ResourcePermissionCheckService;
 import org.apache.dolphinscheduler.api.service.impl.BaseServiceImpl;
 import org.apache.dolphinscheduler.api.service.impl.ProjectServiceImpl;
@@ -37,17 +34,6 @@ import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
 import org.apache.dolphinscheduler.dao.mapper.ProjectMapper;
 import org.apache.dolphinscheduler.dao.mapper.ProjectUserMapper;
 import org.apache.dolphinscheduler.dao.mapper.UserMapper;
-
-import org.apache.commons.collections.CollectionUtils;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,6 +43,19 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT;
+import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT_CREATE;
+import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT_DELETE;
+import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.PROJECT_UPDATE;
 
 /**
  * project service test
@@ -122,17 +121,20 @@ public class ProjectServiceTest {
         long projectCode = 1L;
         User loginUser = getLoginUser();
 
-        Map<String, Object> result = projectService.checkProjectAndAuth(loginUser, null, projectCode, PROJECT);
-        logger.info(result.toString());
-        Status status = (Status) result.get(Constants.STATUS);
-        Assert.assertEquals(Status.PROJECT_NOT_EXIST, result.get(Constants.STATUS));
+        try {
+            projectService.checkProjectAndAuth(loginUser, null, projectCode, PROJECT);
+            Assert.fail("Should throw project not exist exception");
+        } catch (ServiceException serviceException) {
 
+        }
         Project project = getProject();
         // USER_NO_OPERATION_PROJECT_PERM
         project.setUserId(2);
-        result = projectService.checkProjectAndAuth(loginUser, project, projectCode, PROJECT);
-        logger.info(result.toString());
-        Assert.assertEquals(Status.USER_NO_OPERATION_PROJECT_PERM, result.get(Constants.STATUS));
+        try {
+            projectService.checkProjectAndAuth(loginUser, project, projectCode, PROJECT);
+            Assert.fail("Should throw USER_NO_OPERATION_PROJECT_PERM exception");
+        } catch (ServiceException serviceException) {
+        }
 
         // success
         project.setUserId(1);
@@ -143,14 +145,15 @@ public class ProjectServiceTest {
         Mockito.when(resourcePermissionCheckService.resourcePermissionCheck(AuthorizationType.PROJECTS,
                 new Object[]{project.getId()},
                 0, baseServiceLogger)).thenReturn(true);
-        result = projectService.checkProjectAndAuth(loginUser, project, projectCode, PROJECT);
-        logger.info(result.toString());
-        Assert.assertEquals(Status.SUCCESS, result.get(Constants.STATUS));
 
-        Map<String, Object> result2 = new HashMap<>();
+        projectService.checkProjectAndAuth(loginUser, project, projectCode, PROJECT);
 
-        result2 = projectService.checkProjectAndAuth(loginUser, null, projectCode, PROJECT);
-        Assert.assertEquals(Status.PROJECT_NOT_EXIST, result2.get(Constants.STATUS));
+        try {
+            projectService.checkProjectAndAuth(loginUser, null, projectCode, PROJECT);
+            Assert.fail("Should trow PROJECT_NOT_EXIST exception");
+        } catch (ServiceException serviceException) {
+
+        }
 
         Project project1 = getProject();
         // USER_NO_OPERATION_PROJECT_PERM
@@ -159,9 +162,12 @@ public class ProjectServiceTest {
         Mockito.when(resourcePermissionCheckService.operationPermissionCheck(AuthorizationType.PROJECTS,
                 new Object[]{project.getId()},
                 loginUser.getId(), PROJECT, baseServiceLogger)).thenReturn(true);
-        result2 = projectService.checkProjectAndAuth(loginUser, project1, projectCode, PROJECT);
-        Assert.assertEquals(Status.USER_NO_OPERATION_PROJECT_PERM, result2.get(Constants.STATUS));
+        try {
+            projectService.checkProjectAndAuth(loginUser, project1, projectCode, PROJECT);
+            Assert.fail("Should throw USER_NO_OPERATION_PROJECT_PERM exception");
+        } catch (ServiceException serviceException) {
 
+        }
         // success
         project1.setUserId(1);
         projectService.checkProjectAndAuth(loginUser, project1, projectCode, PROJECT);
@@ -182,9 +188,12 @@ public class ProjectServiceTest {
         Mockito.when(resourcePermissionCheckService.operationPermissionCheck(AuthorizationType.PROJECTS,
                 new Object[]{project.getId()},
                 tempUser.getId(), null, baseServiceLogger)).thenReturn(true);
-        boolean checkResult = projectService.hasProjectAndPerm(tempUser, project, result, null);
-        logger.info(result.toString());
-        Assert.assertFalse(checkResult);
+        try {
+            projectService.hasProjectAndPerm(tempUser, project, result, null);
+            Assert.fail("Should throw no permission exception");
+        } catch (ServiceException serviceException) {
+            // this is expected
+        }
 
         // success
         result = new HashMap<>();
@@ -196,9 +205,7 @@ public class ProjectServiceTest {
         Mockito.when(resourcePermissionCheckService.resourcePermissionCheck(AuthorizationType.PROJECTS,
                 new Object[]{project.getId()},
                 0, baseServiceLogger)).thenReturn(true);
-        checkResult = projectService.hasProjectAndPerm(loginUser, project, result, null);
-        logger.info(result.toString());
-        Assert.assertTrue(checkResult);
+        projectService.hasProjectAndPerm(loginUser, project, result, null);
     }
 
     @Test

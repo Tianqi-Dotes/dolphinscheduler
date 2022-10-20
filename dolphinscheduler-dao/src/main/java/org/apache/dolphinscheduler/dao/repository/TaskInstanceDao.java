@@ -4,7 +4,11 @@ import lombok.NonNull;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.dao.exception.RepositoryException;
 
+import java.util.List;
+
 public interface TaskInstanceDao {
+
+    List<TaskInstance> queryTaskInstanceByIds(List<Integer> taskInstanceId);
 
     /**
      * Update the taskInstance, if update failed will throw exception.

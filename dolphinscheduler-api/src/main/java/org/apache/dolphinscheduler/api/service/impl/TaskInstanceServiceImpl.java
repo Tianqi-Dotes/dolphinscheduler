@@ -19,16 +19,21 @@ package org.apache.dolphinscheduler.api.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.dolphinscheduler.api.enums.Status;
+import org.apache.dolphinscheduler.api.exceptions.ServiceException;
 import org.apache.dolphinscheduler.api.service.ProcessInstanceService;
 import org.apache.dolphinscheduler.api.service.ProjectService;
 import org.apache.dolphinscheduler.api.service.TaskInstanceService;
 import org.apache.dolphinscheduler.api.service.UsersService;
+import org.apache.dolphinscheduler.api.transformer.CommandTransformer;
 import org.apache.dolphinscheduler.api.utils.PageInfo;
 import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.api.validator.TaskInstanceValidator;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.utils.CollectionUtils;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
+import org.apache.dolphinscheduler.dao.entity.Command;
 import org.apache.dolphinscheduler.dao.entity.Project;
 import org.apache.dolphinscheduler.dao.entity.TaskDefinition;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
@@ -36,12 +41,16 @@ import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.dao.mapper.ProjectMapper;
 import org.apache.dolphinscheduler.dao.mapper.TaskDefinitionMapper;
 import org.apache.dolphinscheduler.dao.mapper.TaskInstanceMapper;
+import org.apache.dolphinscheduler.dao.repository.TaskInstanceDao;
 import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.service.process.ProcessService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,10 +59,9 @@ import java.util.stream.Collectors;
 
 import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.FORCED_SUCCESS;
 import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.TASK_INSTANCE;
+import static org.apache.dolphinscheduler.api.enums.Status.CLEAN_TASK_INSTANCE_ERROR;
 
-/**
- * task instance service impl
- */
+@Slf4j
 @Service
 public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInstanceService {
 
@@ -77,6 +85,12 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
 
     @Autowired
     TaskDefinitionMapper taskDefinitionMapper;
+
+    @Autowired
+    private TaskInstanceDao taskInstanceDao;
+
+    @Autowired
+    private CommandTransformer commandTransformer;
 
     /**
      * query task list by project, process instance, task name, task start time, task end time, task status, keyword paging
@@ -111,19 +125,13 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
         Result result = new Result();
         Project project = projectMapper.queryByCode(projectCode);
         // check user access for project
-        Map<String, Object> checkResult =
-                projectService.checkProjectAndAuth(loginUser, project, projectCode, TASK_INSTANCE);
-        Status status = (Status) checkResult.get(Constants.STATUS);
-        if (status != Status.SUCCESS) {
-            putMsg(result, status);
-            return result;
-        }
+        projectService.checkProjectAndAuth(loginUser, project, projectCode, TASK_INSTANCE);
         int[] statusArray = null;
         if (stateType != null) {
             statusArray = new int[]{stateType.ordinal()};
         }
         Map<String, Object> checkAndParseDateResult = checkAndParseDateParameters(startDate, endDate);
-        status = (Status) checkAndParseDateResult.get(Constants.STATUS);
+        Status status = (Status) checkAndParseDateResult.get(Constants.STATUS);
         if (status != Status.SUCCESS) {
             putMsg(result, status);
             return result;
@@ -169,12 +177,9 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
     @Override
     public Map<String, Object> forceTaskSuccess(User loginUser, long projectCode, Integer taskInstanceId) {
         Project project = projectMapper.queryByCode(projectCode);
+        Map<String, Object> result = new HashMap<>();
         // check user access for project
-        Map<String, Object> result =
-                projectService.checkProjectAndAuth(loginUser, project, projectCode, FORCED_SUCCESS);
-        if (result.get(Constants.STATUS) != Status.SUCCESS) {
-            return result;
-        }
+        projectService.checkProjectAndAuth(loginUser, project, projectCode, FORCED_SUCCESS);
 
         // check whether the task instance can be found
         TaskInstance task = taskInstanceMapper.selectById(taskInstanceId);
@@ -204,5 +209,34 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
             putMsg(result, Status.FORCE_TASK_SUCCESS_ERROR);
         }
         return result;
+    }
+
+    @Override
+    @Transactional
+    public void cleanTaskInstanceState(User loginUser, List<Integer> taskInstanceIds) {
+        try {
+            // find the task instance from DB
+            List<TaskInstance> existTaskInstances = taskInstanceDao.queryTaskInstanceByIds(taskInstanceIds);
+            TaskInstanceValidator.validateTaskInstanceAllExists(taskInstanceIds, existTaskInstances);
+
+            Map<Integer, List<Integer>> processInstanceId2TaskInstanceIds =
+                    existTaskInstances.stream().collect(
+                            HashMap::new,
+                            (map, taskInstance) -> {
+                                map.computeIfAbsent(taskInstance.getProcessInstanceId(), k -> new ArrayList<>())
+                                        .add(taskInstance.getId());
+                            },
+                            Map::putAll);
+
+            List<Command> cleanStateCommands = commandTransformer.transformToCleanTaskInstanceStateCommands(loginUser,
+                    processInstanceId2TaskInstanceIds);
+
+            // todo: use batch create and remove the transactional
+            cleanStateCommands.forEach(command -> processService.createCommand(command));
+        } catch (ServiceException serviceException) {
+            throw serviceException;
+        } catch (Exception ex) {
+            throw new ServiceException(CLEAN_TASK_INSTANCE_ERROR);
+        }
     }
 }

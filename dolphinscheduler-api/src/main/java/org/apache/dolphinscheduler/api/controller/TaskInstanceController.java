@@ -23,6 +23,7 @@ import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.apache.dolphinscheduler.api.aspect.AccessLogAnnotation;
+import org.apache.dolphinscheduler.api.dto.request.CleanTaskInstanceStateRequest;
 import org.apache.dolphinscheduler.api.exceptions.ApiException;
 import org.apache.dolphinscheduler.api.service.TaskInstanceService;
 import org.apache.dolphinscheduler.api.utils.Result;
@@ -36,6 +37,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -136,6 +138,17 @@ public class TaskInstanceController extends BaseController {
                                            @PathVariable(value = "id") Integer id) {
         Map<String, Object> result = taskInstanceService.forceTaskSuccess(loginUser, projectCode, id);
         return returnDataList(result);
+    }
+
+    @ApiOperation(value = "cleanTaskInstanceState", notes = "CLEAN_TASK_INSTANCE_STATE")
+    @PostMapping(value = "/clean-task-instance-state")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(FORCE_TASK_SUCCESS_ERROR)
+    @AccessLogAnnotation(ignoreRequestArgs = "loginUser")
+    public Result<Void> cleanTaskInstanceState(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                               @RequestBody CleanTaskInstanceStateRequest request) {
+        taskInstanceService.cleanTaskInstanceState(loginUser, request.getTaskInstanceIds());
+        return Result.success(null);
     }
 
 }

@@ -180,8 +180,7 @@ public class ExecutorServiceTest {
 
         // mock
         Mockito.when(projectMapper.queryByCode(projectCode)).thenReturn(project);
-        Mockito.when(projectService.checkProjectAndAuth(loginUser, project, projectCode, WORKFLOW_START))
-                .thenReturn(checkProjectAndAuth());
+        Mockito.doNothing().when(projectService).checkProjectAndAuth(loginUser, project, projectCode, WORKFLOW_START);
         Mockito.when(processDefinitionMapper.queryByCode(processDefinitionCode)).thenReturn(processDefinition);
         Mockito.when(processService.getTenantForProcess(tenantId, userId)).thenReturn(new Tenant());
         Mockito.when(processService.createCommand(any(Command.class))).thenReturn(1);
@@ -350,8 +349,7 @@ public class ExecutorServiceTest {
     @Test
     public void testExecuteRepeatRunning() {
         Mockito.when(processService.verifyIsNeedCreateCommand(any(Command.class))).thenReturn(true);
-        Mockito.when(projectService.checkProjectAndAuth(loginUser, project, projectCode, RERUN))
-                .thenReturn(checkProjectAndAuth());
+        Mockito.doNothing().when(projectService).checkProjectAndAuth(loginUser, project, projectCode, RERUN);
         Map<String, Object> result =
                 executorService.execute(loginUser, projectCode, processInstanceId, ExecuteType.REPEAT_RUNNING);
         Assert.assertEquals(Status.SUCCESS, result.get(Constants.STATUS));
@@ -402,12 +400,6 @@ public class ExecutorServiceTest {
         schedule.setCrontab("0 0 0 1/2 * ?");
         schedulerList.add(schedule);
         return schedulerList;
-    }
-
-    private Map<String, Object> checkProjectAndAuth() {
-        Map<String, Object> result = new HashMap<>();
-        result.put(Constants.STATUS, Status.SUCCESS);
-        return result;
     }
 
     @Test

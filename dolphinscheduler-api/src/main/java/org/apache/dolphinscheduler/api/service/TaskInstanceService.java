@@ -21,6 +21,7 @@ import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -69,4 +70,9 @@ public interface TaskInstanceService {
     Map<String, Object> forceTaskSuccess(User loginUser,
                                          long projectCode,
                                          Integer taskInstanceId);
+
+    /**
+     * Clean taskInstance state and rerun the workflow instance.
+     */
+    void cleanTaskInstanceState(User loginUser, List<Integer> taskInstanceIds);
 }

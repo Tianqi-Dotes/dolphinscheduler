@@ -17,26 +17,16 @@
 
 package org.apache.dolphinscheduler.server.master.runner;
 
-import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_COMPLEMENT_DATA_END_DATE;
-import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_COMPLEMENT_DATA_SCHEDULE_DATE_LIST;
-import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_COMPLEMENT_DATA_START_DATE;
-import static org.apache.dolphinscheduler.common.Constants.CMD_PARAM_RECOVERY_START_NODE_STRING;
-import static org.apache.dolphinscheduler.common.Constants.CMD_PARAM_RECOVER_PROCESS_ID_STRING;
-import static org.apache.dolphinscheduler.common.Constants.CMD_PARAM_START_NODES;
-import static org.apache.dolphinscheduler.common.Constants.COMMA;
-import static org.apache.dolphinscheduler.common.Constants.DEFAULT_WORKER_GROUP;
-import static org.apache.dolphinscheduler.common.Constants.YYYY_MM_DD_HH_MM_SS;
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.TASK_TYPE_BLOCKING;
-import static org.apache.dolphinscheduler.plugin.task.api.enums.DataType.VARCHAR;
-import static org.apache.dolphinscheduler.plugin.task.api.enums.Direct.IN;
-
+import com.google.common.collect.Lists;
+import lombok.NonNull;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.CommandType;
 import org.apache.dolphinscheduler.common.enums.FailureStrategy;
 import org.apache.dolphinscheduler.common.enums.Flag;
-import org.apache.dolphinscheduler.common.enums.Priority;
 import org.apache.dolphinscheduler.common.enums.StateEventType;
-import org.apache.dolphinscheduler.common.enums.TaskDependType;
 import org.apache.dolphinscheduler.common.enums.TaskGroupQueueStatus;
 import org.apache.dolphinscheduler.common.graph.DAG;
 import org.apache.dolphinscheduler.common.model.TaskNode;
@@ -60,7 +50,6 @@ import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
 import org.apache.dolphinscheduler.dao.utils.DagHelper;
 import org.apache.dolphinscheduler.plugin.task.api.enums.DependResult;
-import org.apache.dolphinscheduler.plugin.task.api.enums.Direct;
 import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.plugin.task.api.model.Property;
 import org.apache.dolphinscheduler.remote.command.HostUpdateCommand;
@@ -76,27 +65,27 @@ import org.apache.dolphinscheduler.server.master.metrics.TaskMetrics;
 import org.apache.dolphinscheduler.server.master.runner.task.ITaskProcessor;
 import org.apache.dolphinscheduler.server.master.runner.task.TaskAction;
 import org.apache.dolphinscheduler.server.master.runner.task.TaskProcessorFactory;
+import org.apache.dolphinscheduler.server.master.utils.TaskInstanceUtils;
+import org.apache.dolphinscheduler.server.master.utils.WorkflowInstanceUtils;
 import org.apache.dolphinscheduler.service.alert.ProcessAlertManager;
 import org.apache.dolphinscheduler.service.corn.CronUtils;
 import org.apache.dolphinscheduler.service.expand.CuringParamsService;
 import org.apache.dolphinscheduler.service.process.ProcessService;
 import org.apache.dolphinscheduler.service.queue.PeerTaskInstancePriorityQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
-
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -105,13 +94,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
-
-import com.google.common.collect.Lists;
-
-import lombok.NonNull;
+import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_COMPLEMENT_DATA_END_DATE;
+import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_COMPLEMENT_DATA_SCHEDULE_DATE_LIST;
+import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_COMPLEMENT_DATA_START_DATE;
+import static org.apache.dolphinscheduler.common.Constants.CMD_PARAM_RECOVER_PROCESS_ID_STRING;
+import static org.apache.dolphinscheduler.common.Constants.COMMA;
+import static org.apache.dolphinscheduler.common.Constants.YYYY_MM_DD_HH_MM_SS;
+import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.TASK_TYPE_BLOCKING;
+import static org.apache.dolphinscheduler.plugin.task.api.enums.DataType.VARCHAR;
+import static org.apache.dolphinscheduler.plugin.task.api.enums.Direct.IN;
 
 /**
  * Workflow execute task, used to execute a workflow instance.
@@ -194,6 +185,8 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
      * complement date list
      */
     private List<Date> complementListDate = Lists.newLinkedList();
+
+    private final Set<String> stateCleanTaskCodes = new HashSet<>();
 
     /**
      * state event queue
@@ -766,15 +759,12 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
 
     /**
      * Generate process dag
-     *
-     * @throws Exception exception
      */
-    private void buildFlowDag() throws Exception {
+    // todo: move this to constructor
+    private void buildFlowDag() {
         processDefinition = processService.findProcessDefinition(processInstance.getProcessDefinitionCode(),
                 processInstance.getProcessDefinitionVersion());
         processInstance.setProcessDefinition(processDefinition);
-
-        List<TaskInstance> recoverNodeList = getRecoverTaskInstanceList(processInstance.getCommandParam());
 
         List<ProcessTaskRelation> processTaskRelations =
                 processService.findRelationByCode(processDefinition.getCode(), processDefinition.getVersion());
@@ -790,10 +780,18 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
         });
 
         // generate process to get DAG info
-        List<String> recoveryNodeCodeList = getRecoveryNodeCodeList(recoverNodeList);
-        List<String> startNodeNameList = parseStartNodeName(processInstance.getCommandParam());
-        ProcessDag processDag = generateFlowDag(taskNodeList,
-                startNodeNameList, recoveryNodeCodeList, processInstance.getTaskDependType());
+        List<String> startNodeCodes =
+                processService.findTaskInstanceByIdList(WorkflowInstanceUtils.getStartTaskInstanceIds(processInstance))
+                        .stream()
+                        .map(taskInstance -> Long.toString(taskInstance.getTaskCode()))
+                        .collect(Collectors.toList());
+        if (processInstance.getCommandType() == CommandType.START_FROM_STATE_CLEAN_TASKS) {
+            stateCleanTaskCodes.addAll(startNodeCodes);
+        }
+
+        List<String> startNodeNameList = WorkflowInstanceUtils.getStartNodeName(processInstance);
+        ProcessDag processDag = DagHelper.generateFlowDag(taskNodeList, startNodeNameList, startNodeCodes,
+                processInstance.getTaskDependType());
         if (processDag == null) {
             logger.error("processDag is null");
             return;
@@ -824,9 +822,10 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                 try {
                     LoggerUtils.setWorkflowAndTaskInstanceIDMDC(task.getProcessInstanceId(), task.getId());
                     logger.info(
-                            "Check the taskInstance from a exist workflowInstance, existTaskInstanceCode: {}, taskInstanceStatus: {}",
+                            "Check the taskInstance from a exist workflowInstance, existTaskCode: {}, taskInstanceStatus: {}",
                             task.getTaskCode(),
                             task.getState());
+
                     if (validTaskMap.containsKey(task.getTaskCode())) {
                         int oldTaskInstanceId = validTaskMap.get(task.getTaskCode());
                         TaskInstance oldTaskInstance = taskInstanceMap.get(oldTaskInstanceId);
@@ -842,12 +841,21 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                     validTaskMap.put(task.getTaskCode(), task.getId());
                     taskInstanceMap.put(task.getId(), task);
 
+                    // todo: don't use string as task code
+                    if (stateCleanTaskCodes.contains(Long.toString(task.getTaskCode()))) {
+                        // todo: we need to set the task instance flag to no after new task instance inserted.
+                        // is state clean task, need to rerun and will not add to complete/error map.
+                        task.setFlag(Flag.NO);
+                        processService.updateTaskInstance(task);
+                        continue;
+                    }
+
                     if (task.isTaskComplete()) {
                         completeTaskMap.put(task.getTaskCode(), task.getId());
                         continue;
                     }
-                    if (task.isConditionsTask() || DagHelper.haveConditionsAfterNode(Long.toString(task.getTaskCode()),
-                            dag)) {
+                    if (task.isConditionsTask()
+                            || DagHelper.haveConditionsAfterNode(Long.toString(task.getTaskCode()), dag)) {
                         continue;
                     }
                     if (task.taskCanRetry()) {
@@ -860,6 +868,7 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                         }
                         continue;
                     }
+
                     if (task.getState().typeIsFailure()) {
                         errorTaskMap.put(task.getTaskCode(), task.getId());
                     }
@@ -1067,226 +1076,59 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
             return taskInstance;
         }
 
-        return newTaskInstance(processInstance, taskNode);
-    }
-
-    /**
-     * clone a new taskInstance for retry and reset some logic fields
-     *
-     * @return
-     */
-    public TaskInstance cloneRetryTaskInstance(TaskInstance taskInstance) {
-        TaskNode taskNode = dag.getNode(Long.toString(taskInstance.getTaskCode()));
-        if (taskNode == null) {
-            logger.error("taskNode is null, code:{}", taskInstance.getTaskCode());
-            return null;
-        }
-        TaskInstance newTaskInstance = newTaskInstance(processInstance, taskNode);
-        newTaskInstance.setTaskDefine(taskInstance.getTaskDefine());
-        newTaskInstance.setProcessDefine(taskInstance.getProcessDefine());
-        newTaskInstance.setProcessInstance(processInstance);
-        newTaskInstance.setRetryTimes(taskInstance.getRetryTimes() + 1);
-        // todo relative funtion: TaskInstance.retryTaskIntervalOverTime
-        newTaskInstance.setState(taskInstance.getState());
-        newTaskInstance.setEndTime(taskInstance.getEndTime());
-        return newTaskInstance;
-    }
-
-    /**
-     * clone a new taskInstance for tolerant and reset some logic fields
-     *
-     * @return
-     */
-    public TaskInstance cloneTolerantTaskInstance(TaskInstance taskInstance) {
-        TaskNode taskNode = dag.getNode(Long.toString(taskInstance.getTaskCode()));
-        if (taskNode == null) {
-            logger.error("taskNode is null, code:{}", taskInstance.getTaskCode());
-            return null;
-        }
-        TaskInstance newTaskInstance = newTaskInstance(processInstance, taskNode);
-        newTaskInstance.setTaskDefine(taskInstance.getTaskDefine());
-        newTaskInstance.setProcessDefine(taskInstance.getProcessDefine());
-        newTaskInstance.setProcessInstance(processInstance);
-        newTaskInstance.setRetryTimes(taskInstance.getRetryTimes());
-        newTaskInstance.setState(taskInstance.getState());
-        return newTaskInstance;
-    }
-
-    /**
-     * new a taskInstance
-     *
-     * @param processInstance
-     * @param taskNode
-     * @return
-     */
-    public TaskInstance newTaskInstance(ProcessInstance processInstance, TaskNode taskNode) {
-        TaskInstance taskInstance = new TaskInstance();
-        taskInstance.setTaskCode(taskNode.getCode());
-        taskInstance.setTaskDefinitionVersion(taskNode.getVersion());
-        // task name
-        taskInstance.setName(taskNode.getName());
-        // task instance state
-        taskInstance.setState(ExecutionStatus.SUBMITTED_SUCCESS);
-        // process instance id
-        taskInstance.setProcessInstanceId(processInstance.getId());
-        // task instance type
-        taskInstance.setTaskType(taskNode.getType().toUpperCase());
-        // task instance whether alert
-        taskInstance.setAlertFlag(Flag.NO);
-
-        // task instance start time
-        taskInstance.setStartTime(null);
-
-        // task instance flag
-        taskInstance.setFlag(Flag.YES);
-
-        // task dry run flag
-        taskInstance.setDryRun(processInstance.getDryRun());
-
-        // task instance retry times
-        taskInstance.setRetryTimes(0);
-
-        // max task instance retry times
-        taskInstance.setMaxRetryTimes(taskNode.getMaxRetryTimes());
-
-        // retry task instance interval
-        taskInstance.setRetryInterval(taskNode.getRetryInterval());
-
-        // set task param
-        taskInstance.setTaskParams(taskNode.getTaskParams());
-
-        // set task group and priority
-        taskInstance.setTaskGroupId(taskNode.getTaskGroupId());
-        taskInstance.setTaskGroupPriority(taskNode.getTaskGroupPriority());
-
-        // task instance priority
-        if (taskNode.getTaskInstancePriority() == null) {
-            taskInstance.setTaskInstancePriority(Priority.MEDIUM);
-        } else {
-            taskInstance.setTaskInstancePriority(taskNode.getTaskInstancePriority());
-        }
-
-        String processWorkerGroup = processInstance.getWorkerGroup();
-        processWorkerGroup = StringUtils.isBlank(processWorkerGroup) ? DEFAULT_WORKER_GROUP : processWorkerGroup;
-        String taskWorkerGroup =
-                StringUtils.isBlank(taskNode.getWorkerGroup()) ? processWorkerGroup : taskNode.getWorkerGroup();
-
-        Long processEnvironmentCode =
-                Objects.isNull(processInstance.getEnvironmentCode()) ? -1 : processInstance.getEnvironmentCode();
-        Long taskEnvironmentCode =
-                Objects.isNull(taskNode.getEnvironmentCode()) ? processEnvironmentCode : taskNode.getEnvironmentCode();
-
-        if (!processWorkerGroup.equals(DEFAULT_WORKER_GROUP) && taskWorkerGroup.equals(DEFAULT_WORKER_GROUP)) {
-            taskInstance.setWorkerGroup(processWorkerGroup);
-            taskInstance.setEnvironmentCode(processEnvironmentCode);
-        } else {
-            taskInstance.setWorkerGroup(taskWorkerGroup);
-            taskInstance.setEnvironmentCode(taskEnvironmentCode);
-        }
-
-        if (!taskInstance.getEnvironmentCode().equals(-1L)) {
-            Environment environment = processService.findEnvironmentByCode(taskInstance.getEnvironmentCode());
-            if (Objects.nonNull(environment) && StringUtils.isNotEmpty(environment.getConfig())) {
-                taskInstance.setEnvironmentConfig(environment.getConfig());
-            }
-        }
-        // delay execution time
-        taskInstance.setDelayTime(taskNode.getDelayTime());
+        taskInstance = TaskInstanceUtils.newTaskInstance(processInstance, taskNode);
+        TaskInstanceUtils.injectEnvironment(taskInstance, getTaskInstanceEnvironment(taskInstance));
         return taskInstance;
     }
 
-    public void getPreVarPool(TaskInstance taskInstance, Set<String> preTask) {
-        Map<String, Property> allProperty = new HashMap<>();
-        Map<String, TaskInstance> allTaskInstance = new HashMap<>();
-        if (CollectionUtils.isNotEmpty(preTask)) {
-            for (String preTaskCode : preTask) {
-                Integer taskId = completeTaskMap.get(Long.parseLong(preTaskCode));
-                if (taskId == null) {
-                    continue;
-                }
-                TaskInstance preTaskInstance = taskInstanceMap.get(taskId);
-                if (preTaskInstance == null) {
-                    continue;
-                }
-                String preVarPool = preTaskInstance.getVarPool();
-                if (StringUtils.isNotEmpty(preVarPool)) {
-                    List<Property> properties = JSONUtils.toList(preVarPool, Property.class);
-                    for (Property info : properties) {
-                        setVarPoolValue(allProperty, allTaskInstance, preTaskInstance, info);
-                    }
-                }
-            }
-            if (allProperty.size() > 0) {
-                taskInstance.setVarPool(JSONUtils.toJsonString(allProperty.values()));
-            }
-        } else {
-            if (StringUtils.isNotEmpty(processInstance.getVarPool())) {
-                taskInstance.setVarPool(processInstance.getVarPool());
-            }
+    private @Nullable TaskInstance cloneRetryTaskInstance(TaskInstance taskInstance) {
+        TaskNode taskNode = dag.getNode(Long.toString(taskInstance.getTaskCode()));
+        if (taskNode == null) {
+            logger.error("clone retry task instance error, taskNode is null, code:{}", taskInstance.getTaskCode());
+            return null;
         }
+        TaskInstance newTaskInstance = TaskInstanceUtils.cloneTaskInstance(processInstance, taskNode, taskInstance);
+        newTaskInstance.setRetryTimes(newTaskInstance.getRetryTimes() + 1);
+        TaskInstanceUtils.injectEnvironment(taskInstance, getTaskInstanceEnvironment(newTaskInstance));
+        return newTaskInstance;
+    }
+
+    private @Nullable TaskInstance cloneTolerantTaskInstance(TaskInstance taskInstance) {
+        TaskNode taskNode = dag.getNode(Long.toString(taskInstance.getTaskCode()));
+        if (taskNode == null) {
+            logger.error("clone tolerant task instance error, taskNode is null, code:{}", taskInstance.getTaskCode());
+            return null;
+        }
+
+        TaskInstance newTaskInstance = TaskInstanceUtils.cloneTaskInstance(processInstance, taskNode, taskInstance);
+        TaskInstanceUtils.injectEnvironment(newTaskInstance, getTaskInstanceEnvironment(newTaskInstance));
+        return newTaskInstance;
+    }
+
+    private @Nullable TaskInstance cloneCleanStateTaskInstance(TaskInstance taskInstance) {
+        TaskNode taskNode = dag.getNode(Long.toString(taskInstance.getTaskCode()));
+        if (taskNode == null) {
+            logger.error("clone clean state task instance error, taskNode is null, code: {}",
+                    taskInstance.getTaskCode());
+            return null;
+        }
+        TaskInstance newTaskInstance = TaskInstanceUtils.cloneTaskInstance(processInstance, taskNode, taskInstance);
+        TaskInstanceUtils.injectEnvironment(newTaskInstance, getTaskInstanceEnvironment(newTaskInstance));
+        return newTaskInstance;
+    }
+
+    private @Nullable Environment getTaskInstanceEnvironment(@NonNull TaskInstance taskInstance) {
+        Environment environment = null;
+        if (!taskInstance.getEnvironmentCode().equals(-1L)) {
+            environment = processService.findEnvironmentByCode(taskInstance.getEnvironmentCode());
+        }
+        return environment;
     }
 
     public Collection<TaskInstance> getAllTaskInstances() {
         return taskInstanceMap.values();
     }
 
-    private void setVarPoolValue(Map<String, Property> allProperty, Map<String, TaskInstance> allTaskInstance,
-                                 TaskInstance preTaskInstance, Property thisProperty) {
-        // for this taskInstance all the param in this part is IN.
-        thisProperty.setDirect(Direct.IN);
-        // get the pre taskInstance Property's name
-        String proName = thisProperty.getProp();
-        // if the Previous nodes have the Property of same name
-        if (allProperty.containsKey(proName)) {
-            // comparison the value of two Property
-            Property otherPro = allProperty.get(proName);
-            // if this property'value of loop is empty,use the other,whether the other's value is empty or not
-            if (StringUtils.isEmpty(thisProperty.getValue())) {
-                allProperty.put(proName, otherPro);
-                // if property'value of loop is not empty,and the other's value is not empty too, use the earlier value
-            } else if (StringUtils.isNotEmpty(otherPro.getValue())) {
-                TaskInstance otherTask = allTaskInstance.get(proName);
-                if (otherTask.getEndTime().getTime() > preTaskInstance.getEndTime().getTime()) {
-                    allProperty.put(proName, thisProperty);
-                    allTaskInstance.put(proName, preTaskInstance);
-                } else {
-                    allProperty.put(proName, otherPro);
-                }
-            } else {
-                allProperty.put(proName, thisProperty);
-                allTaskInstance.put(proName, preTaskInstance);
-            }
-        } else {
-            allProperty.put(proName, thisProperty);
-            allTaskInstance.put(proName, preTaskInstance);
-        }
-    }
-
-    /**
-     * get complete task instance map, taskCode as key
-     */
-    private Map<String, TaskInstance> getCompleteTaskInstanceMap() {
-        Map<String, TaskInstance> completeTaskInstanceMap = new HashMap<>();
-        for (Map.Entry<Long, Integer> entry : completeTaskMap.entrySet()) {
-            Long taskConde = entry.getKey();
-            Integer taskInstanceId = entry.getValue();
-            TaskInstance taskInstance = taskInstanceMap.get(taskInstanceId);
-            if (taskInstance == null) {
-                logger.warn("Cannot find the taskInstance from taskInstanceMap, taskInstanceId: {}, taskConde: {}",
-                        taskInstanceId,
-                        taskConde);
-                // This case will happen when we submit to db failed, then the taskInstanceId is 0
-                continue;
-            }
-            completeTaskInstanceMap.put(Long.toString(taskInstance.getTaskCode()), taskInstance);
-
-        }
-        return completeTaskInstanceMap;
-    }
-
-    /**
-     * get valid task list
-     */
     private List<TaskInstance> getValidTaskList() {
         List<TaskInstance> validTaskInstanceList = new ArrayList<>();
         for (Integer taskInstanceId : validTaskMap.values()) {
@@ -1296,34 +1138,29 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
     }
 
     private void submitPostNode(String parentNodeCode) throws StateEventHandleException {
-        Set<String> submitTaskNodeList =
-                DagHelper.parsePostNodes(parentNodeCode, skipTaskNodeMap, dag, getCompleteTaskInstanceMap());
+        Set<String> submitTaskNodeList = DagHelper.parsePostNodes(
+                parentNodeCode,
+                skipTaskNodeMap,
+                dag,
+                WorkflowInstanceUtils.getCompleteTaskInstanceMap(completeTaskMap, taskInstanceMap));
         List<TaskInstance> taskInstances = new ArrayList<>();
         for (String taskNode : submitTaskNodeList) {
             TaskNode taskNodeObject = dag.getNode(taskNode);
-            Optional<TaskInstance> existTaskInstanceOptional = getTaskInstance(taskNodeObject.getCode());
-            if (existTaskInstanceOptional.isPresent()) {
-                taskInstances.add(existTaskInstanceOptional.get());
+            TaskInstance existTaskInstance = getTaskInstance(taskNodeObject.getCode()).orElse(null);
+            if (existTaskInstance == null) {
+                taskInstances.add(createTaskInstance(processInstance, taskNodeObject));
                 continue;
             }
-            TaskInstance task = createTaskInstance(processInstance, taskNodeObject);
-            taskInstances.add(task);
+            if (stateCleanTaskCodes.contains(Long.toString(existTaskInstance.getTaskCode()))) {
+                taskInstances.add(cloneCleanStateTaskInstance(existTaskInstance));
+                continue;
+            }
+            taskInstances.add(existTaskInstance);
         }
         // the end node of the branch of the dag
         if (StringUtils.isNotEmpty(parentNodeCode) && dag.getEndNode().contains(parentNodeCode)) {
             TaskInstance endTaskInstance = taskInstanceMap.get(completeTaskMap.get(NumberUtils.toLong(parentNodeCode)));
-            String taskInstanceVarPool = endTaskInstance.getVarPool();
-            if (StringUtils.isNotEmpty(taskInstanceVarPool)) {
-                Set<Property> taskProperties = new HashSet<>(JSONUtils.toList(taskInstanceVarPool, Property.class));
-                String processInstanceVarPool = processInstance.getVarPool();
-                if (StringUtils.isNotEmpty(processInstanceVarPool)) {
-                    Set<Property> properties = new HashSet<>(JSONUtils.toList(processInstanceVarPool, Property.class));
-                    properties.addAll(taskProperties);
-                    processInstance.setVarPool(JSONUtils.toJsonString(properties));
-                } else {
-                    processInstance.setVarPool(JSONUtils.toJsonString(taskProperties));
-                }
-            }
+            WorkflowInstanceUtils.injectWorkflowVarPoolFromEndTaskInstance(processInstance, endTaskInstance);
         }
 
         // if previous node success , post node submit
@@ -1420,8 +1257,11 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
     private boolean dependTaskSuccess(String dependNodeName, String nextNodeName) {
         if (dag.getNode(dependNodeName).isConditionsTask()) {
             // condition task need check the branch to run
-            List<String> nextTaskList =
-                    DagHelper.parseConditionTask(dependNodeName, skipTaskNodeMap, dag, getCompleteTaskInstanceMap());
+            List<String> nextTaskList = DagHelper.parseConditionTask(
+                    dependNodeName,
+                    skipTaskNodeMap,
+                    dag,
+                    WorkflowInstanceUtils.getCompleteTaskInstanceMap(completeTaskMap, taskInstanceMap));
             if (!nextTaskList.contains(nextNodeName)) {
                 return false;
             }
@@ -1831,7 +1671,8 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
             if (task.isFirstRun()) {
                 // get pre task ,get all the task varPool to this task
                 Set<String> preTask = dag.getPreviousNodes(Long.toString(task.getTaskCode()));
-                getPreVarPool(task, preTask);
+                TaskInstanceUtils.injectTaskVarPoolFromPreTask(task, processInstance, preTask, completeTaskMap,
+                        taskInstanceMap);
             }
             DependResult dependResult = getDependResultForTask(task);
             if (DependResult.SUCCESS == dependResult) {
@@ -1869,80 +1710,6 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                         task.getId(), dependResult);
             }
         }
-    }
-
-    /**
-     * Get start task instance list from recover
-     *
-     * @param cmdParam command param
-     * @return task instance list
-     */
-    protected List<TaskInstance> getRecoverTaskInstanceList(String cmdParam) {
-        Map<String, String> paramMap = JSONUtils.toMap(cmdParam);
-
-        // todo: Can we use a better way to set the recover taskInstanceId list? rather then use the cmdParam
-        if (paramMap != null && paramMap.containsKey(CMD_PARAM_RECOVERY_START_NODE_STRING)) {
-            List<Integer> startTaskInstanceIds = Arrays.stream(paramMap.get(CMD_PARAM_RECOVERY_START_NODE_STRING)
-                    .split(COMMA))
-                    .filter(StringUtils::isNotEmpty)
-                    .map(Integer::valueOf)
-                    .collect(Collectors.toList());
-            if (CollectionUtils.isNotEmpty(startTaskInstanceIds)) {
-                return processService.findTaskInstanceByIdList(startTaskInstanceIds);
-            }
-        }
-        return Collections.emptyList();
-    }
-
-    /**
-     * parse "StartNodeNameList" from cmd param
-     *
-     * @param cmdParam command param
-     * @return start node name list
-     */
-    private List<String> parseStartNodeName(String cmdParam) {
-        List<String> startNodeNameList = new ArrayList<>();
-        Map<String, String> paramMap = JSONUtils.toMap(cmdParam);
-        if (paramMap == null) {
-            return startNodeNameList;
-        }
-        if (paramMap.containsKey(CMD_PARAM_START_NODES)) {
-            startNodeNameList = Arrays.asList(paramMap.get(CMD_PARAM_START_NODES).split(Constants.COMMA));
-        }
-        return startNodeNameList;
-    }
-
-    /**
-     * generate start node code list from parsing command param;
-     * if "StartNodeIdList" exists in command param, return StartNodeIdList
-     *
-     * @return recovery node code list
-     */
-    private List<String> getRecoveryNodeCodeList(List<TaskInstance> recoverNodeList) {
-        List<String> recoveryNodeCodeList = new ArrayList<>();
-        if (CollectionUtils.isNotEmpty(recoverNodeList)) {
-            for (TaskInstance task : recoverNodeList) {
-                recoveryNodeCodeList.add(Long.toString(task.getTaskCode()));
-            }
-        }
-        return recoveryNodeCodeList;
-    }
-
-    /**
-     * generate flow dag
-     *
-     * @param totalTaskNodeList    total task node list
-     * @param startNodeNameList    start node name list
-     * @param recoveryNodeCodeList recovery node code list
-     * @param depNodeType          depend node type
-     * @return ProcessDag           process dag
-     * @throws Exception exception
-     */
-    public ProcessDag generateFlowDag(List<TaskNode> totalTaskNodeList,
-                                      List<String> startNodeNameList,
-                                      List<String> recoveryNodeCodeList,
-                                      TaskDependType depNodeType) throws Exception {
-        return DagHelper.generateFlowDag(totalTaskNodeList, startNodeNameList, recoveryNodeCodeList, depNodeType);
     }
 
     /**

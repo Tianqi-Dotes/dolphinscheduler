@@ -17,10 +17,10 @@
 
 package org.apache.dolphinscheduler.common.enums;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import com.baomidou.mybatisplus.annotation.EnumValue;
 
 /**
  * command types
@@ -53,6 +53,8 @@ public enum CommandType {
     STOP(9, "stop a process"),
     RECOVER_WAITING_THREAD(10, "recover waiting thread"),
     RECOVER_SERIAL_WAIT(11, "recover serial wait"),
+    START_FROM_STATE_CLEAN_TASKS(12, "start from state clean tasks"),
+
     ;
 
     CommandType(int code, String descp) {

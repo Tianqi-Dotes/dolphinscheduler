@@ -199,7 +199,12 @@ rpc:
 spring:
   config:
     activate:
-      on-profile: postgresql
+      on-profile: mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/dolphinscheduler
+    username: root
+    password: root
   quartz:
     properties:
-      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate

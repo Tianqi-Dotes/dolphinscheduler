@@ -44,7 +44,7 @@ public interface ProjectService {
      * @param projectCode project code
      * @return project detail information
      */
-    Map<String, Object> queryByCode(User loginUser, long projectCode);
+    Project queryByCode(User loginUser, long projectCode);
 
     /**
      * query project details by name
@@ -64,9 +64,9 @@ public interface ProjectService {
      * @param perm String
      * @return true if the login user have permission to see the project
      */
-    Map<String, Object> checkProjectAndAuth(User loginUser, Project project, long projectCode, String perm);
+    void checkProjectAndAuth(User loginUser, Project project, long projectCode, String perm);
 
-    boolean hasProjectAndPerm(User loginUser, Project project, Map<String, Object> result, String perm);
+    void hasProjectAndPerm(User loginUser, Project project, Map<String, Object> result, String perm);
 
     boolean hasProjectAndPerm(User loginUser, Project project, Result result);
 

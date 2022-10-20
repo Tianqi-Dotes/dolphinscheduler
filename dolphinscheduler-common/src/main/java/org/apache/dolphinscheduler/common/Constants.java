@@ -336,6 +336,8 @@ public final class Constants {
 
     public static final String CMD_PARAM_START_NODES = "StartNodeList";
 
+    public static final String CMD_PARAM_CLEAN_STATE_TASK_INSTANCE_IDS = "CleanStateTaskInstanceIds";
+
     public static final String CMD_PARAM_START_PARAMS = "StartParams";
 
     public static final String CMD_PARAM_FATHER_PARAMS = "fatherParams";

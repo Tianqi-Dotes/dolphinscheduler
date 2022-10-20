@@ -17,6 +17,7 @@
 
 package org.apache.dolphinscheduler.dao.utils;
 
+import lombok.NonNull;
 import org.apache.dolphinscheduler.common.enums.TaskDependType;
 import org.apache.dolphinscheduler.common.graph.DAG;
 import org.apache.dolphinscheduler.common.model.TaskNode;
@@ -43,6 +44,8 @@ import java.util.Set;
 import org.apache.dolphinscheduler.spi.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 
 /**
  * dag tools
@@ -83,14 +86,14 @@ public class DagHelper {
      * @param taskDependType taskDependType
      * @return task node list
      */
-    public static List<TaskNode> generateFlowNodeListByStartNode(List<TaskNode> taskNodeList,
-                                                                 List<String> startNodeNameList,
-                                                                 List<String> recoveryNodeCodeList,
-                                                                 TaskDependType taskDependType) {
+    public static List<TaskNode> generateFlowNodeListByStartNode(@NonNull List<TaskNode> taskNodeList,
+                                                                 @NonNull List<String> startNodeNameList,
+                                                                 @NonNull List<String> recoveryNodeCodeList,
+                                                                 @NonNull TaskDependType taskDependType) {
         List<TaskNode> destFlowNodeList = new ArrayList<>();
         List<String> startNodeList = startNodeNameList;
 
-        if (taskDependType != TaskDependType.TASK_POST && CollectionUtils.isEmpty(startNodeList)) {
+        if (taskDependType != TaskDependType.TASK_POST && CollectionUtils.isEmpty(startNodeNameList)) {
             logger.error("start node list is empty! cannot continue run the process ");
             return destFlowNodeList;
         }
@@ -98,8 +101,7 @@ public class DagHelper {
         List<TaskNode> destTaskNodeList = new ArrayList<>();
         List<TaskNode> tmpTaskNodeList = new ArrayList<>();
 
-        if (taskDependType == TaskDependType.TASK_POST
-                && CollectionUtils.isNotEmpty(recoveryNodeCodeList)) {
+        if (taskDependType == TaskDependType.TASK_POST && CollectionUtils.isNotEmpty(recoveryNodeCodeList)) {
             startNodeList = recoveryNodeCodeList;
         }
         if (CollectionUtils.isEmpty(startNodeList)) {
@@ -207,23 +209,22 @@ public class DagHelper {
      * @param recoveryNodeCodeList recoveryNodeCodeList
      * @param depNodeType depNodeType
      * @return process dag
-     * @throws Exception if error throws Exception
      */
-    public static ProcessDag generateFlowDag(List<TaskNode> totalTaskNodeList,
-                                             List<String> startNodeNameList,
-                                             List<String> recoveryNodeCodeList,
-                                             TaskDependType depNodeType) throws Exception {
+    public static @Nullable ProcessDag generateFlowDag(@NonNull List<TaskNode> totalTaskNodeList,
+                                                       @NonNull List<String> startNodeNameList,
+                                                       @NonNull List<String> recoveryNodeCodeList,
+                                                       @NonNull TaskDependType depNodeType) {
 
-        List<TaskNode> destTaskNodeList = generateFlowNodeListByStartNode(totalTaskNodeList, startNodeNameList,
-                recoveryNodeCodeList, depNodeType);
+        List<TaskNode> destTaskNodeList = generateFlowNodeListByStartNode(
+                totalTaskNodeList,
+                startNodeNameList,
+                recoveryNodeCodeList,
+                depNodeType);
         if (destTaskNodeList.isEmpty()) {
             return null;
         }
         List<TaskNodeRelation> taskNodeRelations = generateRelationListByFlowNodes(destTaskNodeList);
-        ProcessDag processDag = new ProcessDag();
-        processDag.setEdges(taskNodeRelations);
-        processDag.setNodes(destTaskNodeList);
-        return processDag;
+        return new ProcessDag(taskNodeRelations, destTaskNodeList);
     }
 
     /**
@@ -497,10 +498,7 @@ public class DagHelper {
             }
         }
 
-        ProcessDag processDag = new ProcessDag();
-        processDag.setEdges(taskNodeRelations);
-        processDag.setNodes(taskNodeList);
-        return processDag;
+        return new ProcessDag(taskNodeRelations, taskNodeList);
     }
 
     /**
@@ -530,10 +528,7 @@ public class DagHelper {
                         .add(new TaskNodeRelation(Long.toString(preNode.getCode()), Long.toString(postNode.getCode())));
             }
         }
-        ProcessDag processDag = new ProcessDag();
-        processDag.setEdges(taskNodeRelations);
-        processDag.setNodes(taskNodeList);
-        return processDag;
+        return new ProcessDag(taskNodeRelations, taskNodeList);
     }
 
     /**

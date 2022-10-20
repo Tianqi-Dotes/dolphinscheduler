@@ -263,6 +263,9 @@ public enum Status {
             "listing executing TaskExecutionContext by master address error", "查询Worker中正在执行的任务上下文信息错误"),
     LISTING_WAITING_TASK_INSTANCE_BY_WORKER_ERROR(10203, "listing waiting task by worker address error",
             "查询Worker中等待执行的任务信息错误"),
+    CLEAN_TASK_INSTANCE_ERROR(10204, "clean task instance state error", "清除任务实例状态错误"),
+    CLEAN_TASK_INSTANCE_ERROR_WORKFLOW_INSTANCE_IS_RUNNING(10205,
+            "clean task instance state error, the related workflow instance is running", "清除任务实例状态错误，对应的工作流实例在运行中"),
 
     CREATE_BATCH_RESOURCE_NOTES(10204, "create batch resource error", "创建资源错误"),
     UDF_FUNCTION_NOT_EXIST(20001, "UDF function not found", "UDF函数不存在"),

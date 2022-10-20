@@ -160,10 +160,7 @@ public class DataAnalysisServiceImpl extends BaseServiceImpl implements DataAnal
         Map<String, Object> result = new HashMap<>();
         if (projectCode != 0) {
             Project project = projectMapper.queryByCode(projectCode);
-            result = projectService.checkProjectAndAuth(loginUser, project, projectCode, PROJECT_OVERVIEW);
-            if (result.get(Constants.STATUS) != Status.SUCCESS) {
-                return result;
-            }
+            projectService.checkProjectAndAuth(loginUser, project, projectCode, PROJECT_OVERVIEW);
         }
 
         Date start = null;
@@ -210,10 +207,7 @@ public class DataAnalysisServiceImpl extends BaseServiceImpl implements DataAnal
         Map<String, Object> result = new HashMap<>();
         if (projectCode != 0) {
             Project project = projectMapper.queryByCode(projectCode);
-            result = projectService.checkProjectAndAuth(loginUser, project, projectCode, PROJECT_OVERVIEW);
-            if (result.get(Constants.STATUS) != Status.SUCCESS) {
-                return result;
-            }
+            projectService.checkProjectAndAuth(loginUser, project, projectCode, PROJECT_OVERVIEW);
         }
 
         List<DefinitionGroupByUser> defineGroupByUsers = new ArrayList<>();

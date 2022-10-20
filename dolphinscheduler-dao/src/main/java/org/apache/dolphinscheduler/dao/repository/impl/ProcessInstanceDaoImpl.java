@@ -17,15 +17,17 @@
 
 package org.apache.dolphinscheduler.dao.repository.impl;
 
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.dao.mapper.ProcessInstanceMapper;
 import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 @Repository
@@ -33,6 +35,19 @@ public class ProcessInstanceDaoImpl implements ProcessInstanceDao {
 
     @Autowired
     private ProcessInstanceMapper processInstanceMapper;
+
+    @Override
+    public List<ProcessInstance> queryProcessInstanceByIds(List<Integer> processInstanceIds) {
+        if (CollectionUtils.isEmpty(processInstanceIds)) {
+            return Collections.emptyList();
+        }
+        return processInstanceMapper.selectBatchIds(processInstanceIds);
+    }
+
+    @Override
+    public ProcessInstance queryProcessInstanceById(@NonNull Integer processInstanceId) {
+        return processInstanceMapper.selectById(processInstanceId);
+    }
 
     @Override
     public int insertProcessInstance(ProcessInstance processInstance) {

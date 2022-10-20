@@ -83,11 +83,9 @@ public class ProjectControllerTest {
 
     @Test
     public void testQueryProjectByCode() {
-        Map<String, Object> result = new HashMap<>();
-        putMsg(result, Status.SUCCESS);
         long projectCode = 1L;
         Mockito.when(projectMapper.queryByCode(projectCode)).thenReturn(getProject());
-        Mockito.when(projectService.queryByCode(user, projectCode)).thenReturn(result);
+        Mockito.when(projectService.queryByCode(user, projectCode)).thenReturn(null);
         Result response = projectController.queryProjectByCode(user, projectCode);
         Assert.assertEquals(Status.SUCCESS.getCode(), response.getCode().intValue());
     }

@@ -40,13 +40,13 @@ public class TimePlaceholderResolverExpandServiceTest {
     public void testTimePlaceholderResolverExpandService() {
         boolean checkResult = timePlaceholderResolverExpandService.timeFunctionNeedExpand(placeHolderName);
         Assert.assertFalse(checkResult);
-        String resultString = timePlaceholderResolverExpandService.timeFunctionExtension(1, "", placeHolderName);
+        String resultString = timePlaceholderResolverExpandService.timeFunctionExtension(new FunctionExpandContent(true, null, 1, "", placeHolderName));
         Assert.assertTrue(StringUtils.isEmpty(resultString));
 
         boolean implCheckResult = timePlaceholderResolverExpandServiceImpl.timeFunctionNeedExpand(placeHolderName);
         Assert.assertFalse(implCheckResult);
         String implResultString =
-                timePlaceholderResolverExpandServiceImpl.timeFunctionExtension(1, "", placeHolderName);
+                timePlaceholderResolverExpandServiceImpl.timeFunctionExtension(new FunctionExpandContent(true, null, 1, "", placeHolderName));
         Assert.assertTrue(StringUtils.isEmpty(implResultString));
     }
 }

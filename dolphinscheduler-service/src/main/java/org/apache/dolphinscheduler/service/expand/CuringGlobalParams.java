@@ -62,9 +62,8 @@ public class CuringGlobalParams implements CuringParamsService {
     }
 
     @Override
-    public String timeFunctionExtension(boolean global, String parameters, Integer processInstanceId,
-                                        String timezone, String placeholderName) {
-        return timePlaceholderResolverExpandService.timeFunctionExtension(processInstanceId, timezone, placeholderName);
+    public String timeFunctionExtension(FunctionExpandContent functionExpandContent) {
+        return timePlaceholderResolverExpandService.timeFunctionExtension(functionExpandContent);
     }
 
     /**
@@ -104,7 +103,15 @@ public class CuringGlobalParams implements CuringParamsService {
                 String str = "";
                 // whether external scaling calculation is required
                 if (timeFunctionNeedExpand(val)) {
-                    str = timeFunctionExtension(true, null, processInstanceId, timezone, val);
+                    FunctionExpandContent functionExpandContent = FunctionExpandContent
+                            .builder()
+                            .global(true)
+                            .parameters(null)
+                            .processInstanceId(processInstanceId)
+                            .timezone(timezone)
+                            .placeholderName(val)
+                            .build();
+                    str = timeFunctionExtension(functionExpandContent);
                 } else {
                     str = convertParameterPlaceholders(val, allParamMap);
                 }
@@ -187,8 +194,15 @@ public class CuringGlobalParams implements CuringParamsService {
                 String val = property.getValue();
                 // whether external scaling calculation is required
                 if (timeFunctionNeedExpand(val)) {
-                    val = timeFunctionExtension(false, JSONUtils.toJsonString(parameters),
-                            taskInstance.getProcessInstanceId(), timeZone, val);
+                    FunctionExpandContent functionExpandContent = FunctionExpandContent
+                            .builder()
+                            .global(false)
+                            .parameters(JSONUtils.toJsonString(parameters))
+                            .processInstanceId(taskInstance.getProcessInstanceId())
+                            .timezone(timeZone)
+                            .placeholderName(val)
+                            .build();
+                    val = timeFunctionExtension(functionExpandContent);
                 } else {
                     val = convertParameterPlaceholders(val, params);
                 }

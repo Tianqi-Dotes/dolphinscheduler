@@ -40,12 +40,10 @@ public interface CuringParamsService {
 
     /**
      * time function extension
-     * @param processInstanceId
-     * @param timezone
-     * @param placeholderName
+     * @param functionExpandContent
      * @return
      */
-    String timeFunctionExtension(Integer processInstanceId, String timezone, String placeholderName);
+    String timeFunctionExtension(FunctionExpandContent functionExpandContent);
 
     /**
      * convert parameter placeholders

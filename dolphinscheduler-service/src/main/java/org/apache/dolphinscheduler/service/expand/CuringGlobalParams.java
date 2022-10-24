@@ -62,7 +62,8 @@ public class CuringGlobalParams implements CuringParamsService {
     }
 
     @Override
-    public String timeFunctionExtension(Integer processInstanceId, String timezone, String placeholderName) {
+    public String timeFunctionExtension(boolean global, String parameters, Integer processInstanceId,
+                                        String timezone, String placeholderName) {
         return timePlaceholderResolverExpandService.timeFunctionExtension(processInstanceId, timezone, placeholderName);
     }
 
@@ -103,7 +104,7 @@ public class CuringGlobalParams implements CuringParamsService {
                 String str = "";
                 // whether external scaling calculation is required
                 if (timeFunctionNeedExpand(val)) {
-                    str = timeFunctionExtension(processInstanceId, timezone, val);
+                    str = timeFunctionExtension(true, null, processInstanceId, timezone, val);
                 } else {
                     str = convertParameterPlaceholders(val, allParamMap);
                 }
@@ -186,7 +187,8 @@ public class CuringGlobalParams implements CuringParamsService {
                 String val = property.getValue();
                 // whether external scaling calculation is required
                 if (timeFunctionNeedExpand(val)) {
-                    val = timeFunctionExtension(taskInstance.getProcessInstanceId(), timeZone, val);
+                    val = timeFunctionExtension(false, JSONUtils.toJsonString(parameters),
+                            taskInstance.getProcessInstanceId(), timeZone, val);
                 } else {
                     val = convertParameterPlaceholders(val, params);
                 }

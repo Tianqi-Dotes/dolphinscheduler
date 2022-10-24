@@ -1,5 +1,7 @@
 package org.apache.dolphinscheduler.service.expand;
 
+import java.util.Map;
+
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,12 +21,15 @@ public class FunctionExpandContent {
 
     private String placeholderName;
 
+    private Map<String, String> paramsMap;
+
     public FunctionExpandContent(boolean global, String parameters, Integer processInstanceId,
-                                 String timezone, String placeholderName) {
+                                 String timezone, String placeholderName, Map<String, String> paramsMap) {
         this.global = global;
         this.parameters = parameters;
         this.processInstanceId = processInstanceId;
         this.timezone = timezone;
         this.placeholderName = placeholderName;
+        this.paramsMap = paramsMap;
     }
 }

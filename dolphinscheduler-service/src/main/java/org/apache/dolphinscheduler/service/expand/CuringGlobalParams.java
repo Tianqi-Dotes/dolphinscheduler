@@ -110,6 +110,7 @@ public class CuringGlobalParams implements CuringParamsService {
                             .processInstanceId(processInstanceId)
                             .timezone(timezone)
                             .placeholderName(val)
+                            .paramsMap(allParamMap)
                             .build();
                     str = timeFunctionExtension(functionExpandContent);
                 } else {
@@ -201,6 +202,7 @@ public class CuringGlobalParams implements CuringParamsService {
                             .processInstanceId(taskInstance.getProcessInstanceId())
                             .timezone(timeZone)
                             .placeholderName(val)
+                            .paramsMap(params)
                             .build();
                     val = timeFunctionExtension(functionExpandContent);
                 } else {

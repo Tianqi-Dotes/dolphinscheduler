@@ -17,6 +17,7 @@
 
 package org.apache.dolphinscheduler.api.service;
 
+import lombok.NonNull;
 import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.dao.entity.Project;
 import org.apache.dolphinscheduler.dao.entity.User;
@@ -44,6 +45,7 @@ public interface ProjectService {
      * @param projectCode project code
      * @return project detail information
      */
+    @NonNull
     Project queryByCode(User loginUser, long projectCode);
 
     /**

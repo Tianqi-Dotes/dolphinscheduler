@@ -513,7 +513,44 @@ public enum Status {
     CONFIG_FILTER_EMPTY(1400007, "complement time is empty after filtering according to the configuration",
             "当前补数时间根据配置过滤后为空"),
     PROJECT_NAME_TOO_LONG_ERROR(1400008, "project name is too long error", "项目名称过长"),
-    ;
+
+    ISOLATION_TASK_NOT_EXIST(1500000, "Isolation task not exist", "隔离任务不存在"),
+    ISOLATION_TASK_SUBMIT_ERROR(1500100, "Submit isolation task error", "提交隔离任务异常"),
+    ISOLATION_TASK_SUBMIT_ERROR_WORKFLOW_INSTANCE_NOT_SUPPORT(1500101,
+            "Submit isolation task error, relate workflow instance [{0}] is not support",
+            "提交隔离任务异常, 关联的工作流实例：[{0}]暂不支持该操作"),
+    ISOLATION_TASK_SUBMIT_ERROR_WORKFLOW_INSTANCE_NOT_BELONG_TO_CURRENT_PROJECT(1500102,
+            "Submit isolation task error, relate workflow instance [{0}] is not belong to current project",
+            "提交隔离任务异常, 关联的工作流实例：[{0}]不属于当前项目"),
+    ISOLATION_TASK_SUBMIT_ERROR_TASK_NOT_EXIST(1500103, "Submit isolation task error, task: [{0}] is not exist",
+            "提交隔离任务异常, 任务不存在：[{0}]"),
+    ISOLATION_TASK_SUBMIT_ERROR_EXIST_SUB_ISOLATION_TASK(1500104,
+            "Submit isolation task error, workflow instance: [{0}] exist an sub isolation task",
+            "提交隔离任务异常, 工作流实例已经存在：[{0}]子隔离任务"),
+    ISOLATION_TASK_SUBMIT_ERROR_SEND_REQUEST_TO_MASTER_ERROR(1500105,
+            "Submit isolation task error, send request to master error",
+            "提交隔离任务异常，发送请求给Master异常"),
+
+    ISOLATION_TASK_ONLINE_ERROR(1500200, "Online isolation task error", "上线隔离任务异常"),
+    ISOLATION_TASK_ONLINE_ERROR_ALREADY_ONLINE(1500201,
+            "Online isolation task error, the isolation task is already online", "上线隔离任务异常，该任务已处于隔离中"),
+    ISOLATION_TASK_ONLINE_ERROR_SEND_REQUEST_TO_MASTER_ERROR(1500202,
+            "Online isolation task error, send request to master error", "上线隔离任务异常，发送隔离请求给Master异常"),
+    ISOLATION_TASK_ONLINE_ERROR_PROCESS_NOT_BELONG_TO_PROJECT_ERROR(1500203,
+            "Online isolation task error, the process instance is not belongs to project", "上线隔离任务异常，当前工作流实例不属于目标任务"),
+
+    ISOLATION_TASK_CANCEL_ERROR(1500300, "Cancel isolation task error", "取消隔离任务异常"),
+    ISOLATION_TASK_CANCEL_ERROR_SEND_REQUEST_TO_MASTER_ERROR(1500301,
+            "Cancel isolation task error, send request to master error", "取消隔离任务异常，发送隔离请求给Master异常"),
+    ISOLATION_TASK_CANCEL_ERROR_THE_ISOLATION_ALREADY_CANCEL(1500302,
+            "Cancel isolation task error, this task isolation is already been cancel", "取消隔离任务异常，该隔离已经下线"),
+    ISOLATION_TASK_CANCEL_ERROR_PROCESS_NOT_BELONG_TO_PROJECT_ERROR(1500303,
+            "Cancel isolation task error, the process instance is not belongs to project", "取消隔离任务异常，当前工作流实例不属于目标任务"),
+    ISOLATION_TASK_LISTING_ERROR(1500400, "Listing isolation task error", "查询隔离任务列表异常"),
+    ISOLATION_TASK_DELETE_ERROR(1500500, "Delete isolation task error", "删除隔离任务异常"),
+    ISOLATION_TASK_DELETE_ERROR_IS_NOT_OFFLINE(1500501, "Delete isolation task error, the task status is not offline",
+            "删除隔离任务异常，该隔离任务尚未下线"),
+            ;
 
     private final int code;
     private final String enMsg;

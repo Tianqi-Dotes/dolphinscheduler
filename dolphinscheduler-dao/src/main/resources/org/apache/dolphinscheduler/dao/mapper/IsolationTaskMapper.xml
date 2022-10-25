@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.apache.dolphinscheduler.dao.mapper.IsolationTaskMapper">
+    <sql id="baseSql">
+        id
+        ,workflow_instance_id, workflow_instance_name, task_name, task_code, status, create_time, update_time
+    </sql>
+
+    <select id="pageQuery" resultType="string">
+        select
+        <include refid="baseSql"/>
+        from t_ds_isolation_task
+        where 1 = 1
+        <if test="workflowInstanceName != null">
+            and workflow_instance_name = #{workflowInstanceName}
+        </if>
+        <if test="taskName != null">
+            and task_name = #{taskName}
+        </if>
+    </select>
+
+    <select id="queryByTaskCodes" resultType="org.apache.dolphinscheduler.dao.entity.IsolationTask">
+        select
+        <include refid="baseSql"/>
+        from t_ds_isolation_task
+        where workflow_instance_id = #{workflowInstanceId}
+        and task_code in
+        <foreach collection="taskCodes" item="taskCode" open="(" separator="," close=")">
+            #{taskCode}
+        </foreach>
+    </select>
+
+    <select id="queryByWorkflowInstanceId" resultType="org.apache.dolphinscheduler.dao.entity.IsolationTask">
+        select
+        <include refid="baseSql"/>
+        from t_ds_isolation_task
+        where workflow_instance_id = #{workflowInstanceId} and status = #{status}
+    </select>
+
+    <select id="queryByStatus" resultType="org.apache.dolphinscheduler.dao.entity.IsolationTask">
+        select
+        <include refid="baseSql"/>
+        from t_ds_isolation_task
+        where  status = #{status}
+    </select>
+
+    <update id="updateIsolationTaskStatus">
+        update t_ds_isolation_task
+        set status = #{status}
+        where id = #{id}
+    </update>
+
+    <insert id="batchInsert">
+        insert into t_ds_isolation_task (
+        workflow_instance_id,
+        workflow_instance_name,
+        task_name,
+        task_code,
+        status
+        )
+        values
+        <foreach collection="isolationTasks" item="isolationTask" separator=",">
+            (
+            #{isolationTask.workflowInstanceId},
+            #{isolationTask.workflowInstanceName},
+            #{isolationTask.taskName},
+            #{isolationTask.taskCode},
+            #{isolationTask.status}
+            )
+        </foreach>
+    </insert>
+
+    <delete id="deleteByIdAndStatus">
+        delete
+        from t_ds_isolation_task
+        where id = #{id}
+          and status = #{status}
+    </delete>
+
+</mapper>

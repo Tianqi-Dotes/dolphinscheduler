@@ -10,6 +10,8 @@ public interface TaskInstanceDao {
 
     List<TaskInstance> queryTaskInstanceByIds(List<Integer> taskInstanceId);
 
+    List<TaskInstance> queryValidatedTaskInstanceByWorkflowInstanceId(Integer workflowInstanceId);
+
     /**
      * Update the taskInstance, if update failed will throw exception.
      *

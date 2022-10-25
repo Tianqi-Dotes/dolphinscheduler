@@ -22,6 +22,7 @@ package org.apache.dolphinscheduler.server.master.runner.task;
  */
 public enum TaskAction {
     PAUSE,
+    ISOLATE,
     STOP,
     TIMEOUT,
     SUBMIT,

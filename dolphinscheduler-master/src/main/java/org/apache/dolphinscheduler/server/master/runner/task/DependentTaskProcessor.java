@@ -202,6 +202,14 @@ public class DependentTaskProcessor extends BaseTaskProcessor {
         return true;
     }
 
+    @Override
+    protected boolean isolateTask() {
+        taskInstance.setState(ExecutionStatus.KILL_BY_ISOLATION);
+        taskInstance.setEndTime(new Date());
+        processService.saveTaskInstance(taskInstance);
+        return true;
+    }
+
     /**
      * judge all dependent tasks finish
      *

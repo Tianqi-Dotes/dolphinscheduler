@@ -1047,6 +1047,27 @@ public class ProcessServiceImpl implements ProcessService {
                 processInstance.setRunTimes(runTime + 1);
                 processInstance.setCommandParam(JSONUtils.toJsonString(cmdParam));
                 break;
+            case RECOVERY_FROM_ISOLATION_TASKS:
+                Map<String, String> commandParamMap = JSONUtils.toMap(processInstance.getCommandParam());
+                List<Integer> recoveryPausedIsolationIds =
+                        JSONUtils.parseObject(
+                                commandParamMap.get(Constants.CMD_PARAM_RECOVERY_PAUSED_ISOLATED_TASK_IDS),
+                                new TypeReference<ArrayList<Integer>>() {
+                                });
+                if (CollectionUtils.isNotEmpty(recoveryPausedIsolationIds)) {
+                    recoveryPausedIsolationIds.forEach(id -> initTaskInstance(findTaskInstanceById(id)));
+                }
+                List<Integer> recoveryKilledIsolationIds =
+                        JSONUtils.parseObject(
+                                commandParamMap.get(Constants.CMD_PARAM_RECOVERY_KILLED_ISOLATED_TASK_IDS),
+                                new TypeReference<ArrayList<Integer>>() {
+                                });
+                if (CollectionUtils.isNotEmpty(recoveryKilledIsolationIds)) {
+                    recoveryKilledIsolationIds.forEach(id -> initTaskInstance(findTaskInstanceById(id)));
+                }
+                processInstance.setRunTimes(runTime + 1);
+                processInstance.setCommandParam(JSONUtils.toJsonString(cmdParam));
+                break;
             default:
                 break;
         }
@@ -1564,9 +1585,6 @@ public class ProcessServiceImpl implements ProcessService {
                     taskInstance.getTaskCode());
             return null;
         }
-        if (processInstanceState == ExecutionStatus.READY_PAUSE) {
-            taskInstance.setState(ExecutionStatus.PAUSE);
-        }
         taskInstance.setExecutorId(processInstance.getExecutorId());
         taskInstance.setState(getSubmitTaskState(taskInstance, processInstance));
         if (taskInstance.getSubmitTime() == null) {
@@ -1603,7 +1621,8 @@ public class ProcessServiceImpl implements ProcessService {
         if (state == ExecutionStatus.RUNNING_EXECUTION
                 || state == ExecutionStatus.DELAY_EXECUTION
                 || state == ExecutionStatus.KILL
-                || state == ExecutionStatus.DISPATCH) {
+                || state == ExecutionStatus.DISPATCH
+                || state == ExecutionStatus.PAUSE_BY_ISOLATION) {
             return state;
         }
         // return pasue /stop if process instance state is ready pause / stop

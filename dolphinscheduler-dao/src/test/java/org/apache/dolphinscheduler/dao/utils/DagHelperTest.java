@@ -17,8 +17,8 @@
 
 package org.apache.dolphinscheduler.dao.utils;
 
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.TASK_TYPE_CONDITIONS;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.collect.Sets;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.TaskDependType;
 import org.apache.dolphinscheduler.common.graph.DAG;
@@ -32,6 +32,8 @@ import org.apache.dolphinscheduler.plugin.task.api.TaskConstants;
 import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.plugin.task.api.model.SwitchResultVo;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.SwitchParameters;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,10 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Assert;
-import org.junit.Test;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
+import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.TASK_TYPE_CONDITIONS;
 
 /**
  * dag helper test
@@ -335,9 +334,8 @@ public class DagHelperTest {
      * 2->8->5->7
      *
      * @return dag
-     * @throws JsonProcessingException if error throws JsonProcessingException
      */
-    private DAG<String, TaskNode, TaskNodeRelation> generateDag() throws IOException {
+    private DAG<String, TaskNode, TaskNodeRelation> generateDag() {
         List<TaskNode> taskNodeList = new ArrayList<>();
         TaskNode node1 = new TaskNode();
         node1.setId("1");
@@ -529,4 +527,23 @@ public class DagHelperTest {
         Assert.assertNotNull(dag);
     }
 
+    @Test
+    public void getAllPostNodes() {
+        DAG<String, TaskNode, TaskNodeRelation> dag = generateDag();
+        Set<String> allPostNodes = DagHelper.getAllPostNodes("2", dag);
+        Assert.assertEquals(Sets.newHashSet("2", "3", "5", "6", "7", "8"), allPostNodes);
+    }
+
+    @Test
+    public void getAllPreNodes() {
+        DAG<String, TaskNode, TaskNodeRelation> dag = generateDag();
+        Set<String> allPostNodes = DagHelper.getAllPreNodes("2", dag);
+        Assert.assertEquals(Sets.newHashSet("1", "2"), allPostNodes);
+    }
+
+    @Test
+    public void isChildOfAnyParentNodes() {
+        DAG<String, TaskNode, TaskNodeRelation> dag = generateDag();
+        Assert.assertTrue(DagHelper.isChildOfAnyParentNodes("2", Sets.newHashSet("1"), dag));
+    }
 }

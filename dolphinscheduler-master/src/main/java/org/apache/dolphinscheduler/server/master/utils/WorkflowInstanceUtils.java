@@ -36,6 +36,8 @@ public class WorkflowInstanceUtils {
                 return getStartTaskInstanceIdsFromRecoverParam(processInstance);
             case START_FROM_STATE_CLEAN_TASKS:
                 return getStartTaskInstanceIdsFromStateCleanParam(processInstance);
+            case RECOVERY_FROM_ISOLATION_TASKS:
+                return getStartTaskInstanceIdsFromRecoverIsolationParam(processInstance);
             default:
                 return Collections.emptyList();
         }
@@ -67,6 +69,22 @@ public class WorkflowInstanceUtils {
             return Collections.emptyList();
         }
         return stateCleanTaskInstanceIds;
+    }
+
+    public static List<Integer> getStartTaskInstanceIdsFromRecoverIsolationParam(@NonNull ProcessInstance processInstance) {
+        Map<String, String> commandParamMap = JSONUtils.toMap(processInstance.getCommandParam());
+        List<Integer> recoveryPausedIsolationIds =
+                JSONUtils.parseObject(commandParamMap.get(Constants.CMD_PARAM_RECOVERY_PAUSED_ISOLATED_TASK_IDS),
+                        new TypeReference<ArrayList<Integer>>() {
+                        });
+        List<Integer> recoveryKilledIsolationIds =
+                JSONUtils.parseObject(commandParamMap.get(Constants.CMD_PARAM_RECOVERY_KILLED_ISOLATED_TASK_IDS),
+                        new TypeReference<ArrayList<Integer>>() {
+                        });
+        List<Integer> result = new ArrayList<>();
+        result.addAll(recoveryPausedIsolationIds);
+        result.addAll(recoveryKilledIsolationIds);
+        return result;
     }
 
     public static List<String> getStartNodeName(@NonNull ProcessInstance processInstance) {

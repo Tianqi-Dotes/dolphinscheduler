@@ -1941,3 +1941,21 @@ CREATE TABLE t_ds_fav
     user_id   int         NOT NULL,
     PRIMARY KEY (id)
 );
+
+-- ----------------------------
+-- Table structure for t_ds_isolation_task
+-- ----------------------------
+DROP TABLE if exists `t_ds_isolation_task`;
+CREATE TABLE `t_ds_isolation_task`
+(
+    `id`                     bigint       NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+    `workflow_instance_id`   bigint       NOT NULL COMMENT 'workflowInstanceId of the isolation task',
+    `workflow_instance_name` varchar(255) NOT NULL COMMENT 'workflowInstanceName of the isolation task',
+    `task_name`              varchar(255) NOT NULL COMMENT 'isolation task name',
+    `task_code`              bigint       NOT NULL COMMENT 'isolation task code',
+    `status`                 tinyint(4) DEFAULT '0',
+    `create_time`            timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+    `update_time`            timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    CONSTRAINT               `workflow_instance_index` (`workflow_instance_id`)
+);

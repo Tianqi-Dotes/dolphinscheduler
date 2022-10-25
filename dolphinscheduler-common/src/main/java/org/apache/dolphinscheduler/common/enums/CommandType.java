@@ -55,6 +55,8 @@ public enum CommandType {
     RECOVER_SERIAL_WAIT(11, "recover serial wait"),
     START_FROM_STATE_CLEAN_TASKS(12, "start from state clean tasks"),
 
+    RECOVERY_FROM_ISOLATION_TASKS(13, "recovery from isolation tasks"),
+
     ;
 
     CommandType(int code, String descp) {

@@ -3,6 +3,7 @@ package org.apache.dolphinscheduler.dao.repository.impl;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.dolphinscheduler.common.enums.Flag;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.dao.exception.RepositoryException;
 import org.apache.dolphinscheduler.dao.mapper.TaskInstanceMapper;
@@ -26,6 +27,11 @@ public class TaskInstanceDaoImpl implements TaskInstanceDao {
             return Collections.emptyList();
         }
         return taskInstanceMapper.selectBatchIds(taskInstanceIds);
+    }
+
+    @Override
+    public List<TaskInstance> queryValidatedTaskInstanceByWorkflowInstanceId(Integer workflowInstanceId) {
+        return taskInstanceMapper.findValidTaskListByProcessId(workflowInstanceId, Flag.YES);
     }
 
     @Override

@@ -338,6 +338,9 @@ public final class Constants {
 
     public static final String CMD_PARAM_CLEAN_STATE_TASK_INSTANCE_IDS = "CleanStateTaskInstanceIds";
 
+    public static final String CMD_PARAM_RECOVERY_PAUSED_ISOLATED_TASK_IDS = "RecoveryPausedIsolationTaskInstanceIds";
+    public static final String CMD_PARAM_RECOVERY_KILLED_ISOLATED_TASK_IDS = "RecoveryKilledIsolationTaskInstanceIds";
+
     public static final String CMD_PARAM_START_PARAMS = "StartParams";
 
     public static final String CMD_PARAM_FATHER_PARAMS = "fatherParams";
@@ -859,5 +862,5 @@ public final class Constants {
      * file upload verify
      */
     public static final String FILE_TYPE_RESTRICTED_LIST = "file.type.restricted.list";
-    public static final String FILE_NAME_RESTRICTED_CONTENT= "file.name.restricted.content";
+    public static final String FILE_NAME_RESTRICTED_CONTENT = "file.name.restricted.content";
 }

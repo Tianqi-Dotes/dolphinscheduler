@@ -86,6 +86,14 @@ public class SwitchTaskProcessor extends BaseTaskProcessor {
     }
 
     @Override
+    protected boolean isolateTask() {
+        taskInstance.setState(ExecutionStatus.KILL_BY_ISOLATION);
+        taskInstance.setEndTime(new Date());
+        processService.saveTaskInstance(taskInstance);
+        return true;
+    }
+
+    @Override
     protected boolean taskTimeout() {
         return true;
     }

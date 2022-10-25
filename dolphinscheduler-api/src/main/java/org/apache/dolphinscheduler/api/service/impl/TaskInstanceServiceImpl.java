@@ -20,6 +20,7 @@ package org.apache.dolphinscheduler.api.service.impl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dolphinscheduler.api.checker.WorkflowInstanceChecker;
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.exceptions.ServiceException;
 import org.apache.dolphinscheduler.api.service.ProcessInstanceService;
@@ -34,6 +35,7 @@ import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.utils.CollectionUtils;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.dao.entity.Command;
+import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.dao.entity.Project;
 import org.apache.dolphinscheduler.dao.entity.TaskDefinition;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
@@ -41,6 +43,7 @@ import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.dao.mapper.ProjectMapper;
 import org.apache.dolphinscheduler.dao.mapper.TaskDefinitionMapper;
 import org.apache.dolphinscheduler.dao.mapper.TaskInstanceMapper;
+import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
 import org.apache.dolphinscheduler.dao.repository.TaskInstanceDao;
 import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.service.process.ProcessService;
@@ -88,6 +91,12 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
 
     @Autowired
     private TaskInstanceDao taskInstanceDao;
+
+    @Autowired
+    private ProcessInstanceDao processInstanceDao;
+
+    @Autowired
+    private WorkflowInstanceChecker workflowInstanceChecker;
 
     @Autowired
     private CommandTransformer commandTransformer;
@@ -219,7 +228,7 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
             List<TaskInstance> existTaskInstances = taskInstanceDao.queryTaskInstanceByIds(taskInstanceIds);
             TaskInstanceValidator.validateTaskInstanceAllExists(taskInstanceIds, existTaskInstances);
 
-            Map<Integer, List<Integer>> processInstanceId2TaskInstanceIds =
+            Map<Integer, List<Integer>> processInstanceId2TaskInstanceIdMap =
                     existTaskInstances.stream().collect(
                             HashMap::new,
                             (map, taskInstance) -> {
@@ -228,11 +237,17 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
                             },
                             Map::putAll);
 
-            List<Command> cleanStateCommands = commandTransformer.transformToCleanTaskInstanceStateCommands(loginUser,
-                    processInstanceId2TaskInstanceIds);
-
             // todo: use batch create and remove the transactional
-            cleanStateCommands.forEach(command -> processService.createCommand(command));
+            for (Map.Entry<Integer, List<Integer>> processInstanceId2TaskInstanceIds : processInstanceId2TaskInstanceIdMap
+                    .entrySet()) {
+                Integer workflowInstanceId = processInstanceId2TaskInstanceIds.getKey();
+                List<Integer> needToCleanStateTaskInstanceIds = processInstanceId2TaskInstanceIds.getValue();
+                ProcessInstance workflowInstance = processInstanceDao.queryProcessInstanceById(workflowInstanceId);
+                workflowInstanceChecker.checkCanCleanTaskInstanceState(loginUser, workflowInstance);
+                Command command = commandTransformer.transformToCleanTaskInstanceStateCommand(workflowInstance,
+                        needToCleanStateTaskInstanceIds);
+                processService.createCommand(command);
+            }
         } catch (ServiceException serviceException) {
             throw serviceException;
         } catch (Exception ex) {

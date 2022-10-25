@@ -36,6 +36,7 @@ import org.apache.dolphinscheduler.dao.entity.Resource;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.dao.entity.Tenant;
 import org.apache.dolphinscheduler.dao.entity.UdfFunc;
+import org.apache.dolphinscheduler.dao.repository.IsolationTaskDao;
 import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
 import org.apache.dolphinscheduler.dao.repository.TaskInstanceDao;
 import org.apache.dolphinscheduler.plugin.task.api.DataQualityTaskExecutionContext;
@@ -111,6 +112,8 @@ public abstract class BaseTaskProcessor implements ITaskProcessor {
 
     protected boolean timeout = false;
 
+    protected boolean isolated = false;
+
     protected TaskInstance taskInstance = null;
 
     protected ProcessInstance processInstance;
@@ -160,6 +163,8 @@ public abstract class BaseTaskProcessor implements ITaskProcessor {
      */
     protected abstract boolean killTask();
 
+    protected abstract boolean isolateTask();
+
     protected abstract boolean taskTimeout();
 
     protected abstract boolean runTask();
@@ -192,6 +197,9 @@ public abstract class BaseTaskProcessor implements ITaskProcessor {
                     break;
                 case DISPATCH:
                     result = dispatch();
+                    break;
+                case ISOLATE:
+                    result = isolate();
                     break;
                 default:
                     logger.error("unknown task action: {}", taskAction);
@@ -254,6 +262,14 @@ public abstract class BaseTaskProcessor implements ITaskProcessor {
         }
         paused = pauseTask();
         return paused;
+    }
+
+    private boolean isolate() {
+        if (isolated) {
+            return true;
+        }
+        isolated = isolateTask();
+        return isolated;
     }
 
     protected boolean stop() {

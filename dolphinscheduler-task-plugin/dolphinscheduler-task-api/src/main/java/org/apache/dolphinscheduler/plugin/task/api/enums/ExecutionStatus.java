@@ -17,9 +17,9 @@
 
 package org.apache.dolphinscheduler.plugin.task.api.enums;
 
-import java.util.HashMap;
-
 import com.baomidou.mybatisplus.annotation.EnumValue;
+
+import java.util.HashMap;
 
 /**
  * running status for workflow and task nodes
@@ -65,6 +65,8 @@ public enum ExecutionStatus {
     READY_BLOCK(15, "ready block"),
     BLOCK(16, "block"),
     DISPATCH(17, "dispatch"),
+    PAUSE_BY_ISOLATION(18, "paused by isolation"),
+    KILL_BY_ISOLATION(19, "killed by isolation"),
     ;
 
     ExecutionStatus(int code, String descp) {
@@ -117,8 +119,12 @@ public enum ExecutionStatus {
      * @return status
      */
     public boolean typeIsFinished() {
-        return typeIsSuccess() || typeIsFailure() || typeIsCancel() || typeIsPause()
+        return typeIsSuccess() || typeIsFailure() || typeIsCancel() || typeIsPause() || typeIsPauseByIsolation()
                 || typeIsStop() || typeIsBlock();
+    }
+
+    public boolean typeIsReady() {
+        return this == READY_PAUSE || this == READY_STOP || this == READY_BLOCK;
     }
 
     /**
@@ -137,6 +143,18 @@ public enum ExecutionStatus {
      */
     public boolean typeIsPause() {
         return this == PAUSE;
+    }
+
+    public boolean typeIsPauseByIsolation() {
+        return this == PAUSE_BY_ISOLATION;
+    }
+
+    public boolean typeIsKilledByIsolation() {
+        return this == KILL_BY_ISOLATION;
+    }
+
+    public boolean typeIsIsolated() {
+        return this == PAUSE_BY_ISOLATION || this == KILL_BY_ISOLATION;
     }
 
     /**
@@ -172,7 +190,7 @@ public enum ExecutionStatus {
      * @return status
      */
     public boolean typeIsCancel() {
-        return this == KILL || this == STOP;
+        return this == KILL || this == STOP || this == KILL_BY_ISOLATION;
     }
 
     public int getCode() {

@@ -166,7 +166,6 @@ public class TaskInstanceUtils {
         taskInstance.setTaskDefine(oldTaskInstance.getTaskDefine());
         taskInstance.setProcessDefine(oldTaskInstance.getProcessDefine());
         taskInstance.setProcessInstance(processInstance);
-        taskInstance.setState(oldTaskInstance.getState());
         return taskInstance;
     }
 

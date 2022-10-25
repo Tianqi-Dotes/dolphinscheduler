@@ -17,7 +17,9 @@
 
 package org.apache.dolphinscheduler.dao.utils;
 
+import com.google.common.collect.Sets;
 import lombok.NonNull;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.dolphinscheduler.common.enums.TaskDependType;
 import org.apache.dolphinscheduler.common.graph.DAG;
 import org.apache.dolphinscheduler.common.model.TaskNode;
@@ -30,9 +32,11 @@ import org.apache.dolphinscheduler.plugin.task.api.TaskConstants;
 import org.apache.dolphinscheduler.plugin.task.api.model.SwitchResultVo;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.ConditionsParameters;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.SwitchParameters;
+import org.apache.dolphinscheduler.spi.utils.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.commons.collections.CollectionUtils;
-
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -40,12 +44,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.dolphinscheduler.spi.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 
 /**
  * dag tools
@@ -590,5 +588,90 @@ public class DagHelper {
             }
         }
         return false;
+    }
+
+    /**
+     * Get all post nodes of the given node.
+     * <p>
+     * e.g. the given DAG is A -> B -> C, and taskNode is A, return result is A,B,C
+     */
+    public static Set<String> getAllPostNodes(@NonNull String taskNode,
+                                              @NonNull DAG<String, TaskNode, TaskNodeRelation> workflowDAG) {
+        Set<String> result = Sets.newHashSet();
+        Set<String> currentLoopNodes = Sets.newHashSet(taskNode);
+        Set<String> visitedNodes = new HashSet<>();
+        while (!currentLoopNodes.isEmpty()) {
+            Set<String> tmp = new HashSet<>();
+            for (String currentNode : currentLoopNodes) {
+                result.add(currentNode);
+                Set<String> subsequentNodes = workflowDAG.getSubsequentNodes(currentNode);
+                visitedNodes.add(currentNode);
+                subsequentNodes.forEach(s -> {
+                    if (!visitedNodes.contains(s)) {
+                        tmp.add(s);
+                    }
+                });
+            }
+            currentLoopNodes = tmp;
+        }
+        return result;
+    }
+
+    /**
+     * Get all pre nodes of the given node.
+     * <p>
+     * e.g. the given DAG is A -> B -> C, and taskNode is B, return result is A,B
+     */
+    public static Set<String> getAllPreNodes(@NonNull String taskNode,
+                                             @NonNull DAG<String, TaskNode, TaskNodeRelation> workflowDAG) {
+        Set<String> result = Sets.newHashSet();
+        Set<String> currentLoopNodes = Sets.newHashSet(taskNode);
+        Set<String> visitedNodes = new HashSet<>();
+        while (CollectionUtils.isNotEmpty(currentLoopNodes)) {
+            Set<String> tmp = new HashSet<>();
+            for (String currentNode : currentLoopNodes) {
+                result.add(currentNode);
+                visitedNodes.add(currentNode);
+                workflowDAG.getPreviousNodes(currentNode).forEach(s -> {
+                    if (!visitedNodes.contains(s)) {
+                        tmp.add(s);
+                    }
+                });
+            }
+            currentLoopNodes = tmp;
+        }
+        return result;
+    }
+
+    /**
+     * Judge if the givenTaskNode is the child of any given parentNodes or is belongs to parentNodes.
+     */
+    public static boolean isChildOfAnyParentNodes(@NonNull String givenTaskNode,
+                                                  @NonNull Set<String> parentNodes,
+                                                  @NonNull DAG<String, TaskNode, TaskNodeRelation> workflowDAG) {
+        if (CollectionUtils.isEmpty(parentNodes)) {
+            return false;
+        }
+
+        if (parentNodes.contains(givenTaskNode)) {
+            return true;
+        }
+
+        Set<String> postNodesOfParent = new HashSet<>();
+        Set<String> visited = new HashSet<>();
+        while (CollectionUtils.isNotEmpty(parentNodes)) {
+            Set<String> tmp = new HashSet<>();
+            for (String parentNode : parentNodes) {
+                postNodesOfParent.add(parentNode);
+                visited.add(parentNode);
+                workflowDAG.getSubsequentNodes(parentNode).forEach(node -> {
+                    if (!visited.contains(node)) {
+                        tmp.add(node);
+                    }
+                });
+            }
+            parentNodes = tmp;
+        }
+        return postNodesOfParent.contains(givenTaskNode);
     }
 }

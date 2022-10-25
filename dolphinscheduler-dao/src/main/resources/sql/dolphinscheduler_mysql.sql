@@ -1896,22 +1896,22 @@ CREATE TABLE `t_ds_k8s` (
 -- Table structure for t_ds_k8s_namespace
 -- ----------------------------
 DROP TABLE IF EXISTS `t_ds_k8s_namespace`;
-CREATE TABLE `t_ds_k8s_namespace` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `limits_memory` int(11) DEFAULT NULL,
-  `namespace` varchar(100) DEFAULT NULL,
-  `online_job_num` int(11) DEFAULT NULL,
-  `owner` varchar(100) DEFAULT NULL,
-  `pod_replicas` int(11) DEFAULT NULL,
-  `pod_request_cpu` decimal(14,3) DEFAULT NULL,
-  `pod_request_memory` int(11) DEFAULT NULL,
-  `tag` varchar(100) DEFAULT NULL,
-  `limits_cpu` decimal(14,3) DEFAULT NULL,
-  `k8s` varchar(100) DEFAULT NULL,
-  `create_time` datetime DEFAULT NULL COMMENT 'create time',
-  `update_time` datetime DEFAULT NULL COMMENT 'update time',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `k8s_namespace_unique` (`namespace`,`k8s`)
+CREATE TABLE `t_ds_k8s_namespace`(
+                                     `id`                 int(11) NOT NULL AUTO_INCREMENT,
+                                     `limits_memory`      int(11) DEFAULT NULL,
+                                     `namespace`          varchar(100)   DEFAULT NULL,
+                                     `online_job_num`     int(11) DEFAULT NULL,
+                                     `owner`              varchar(100)   DEFAULT NULL,
+                                     `pod_replicas`       int(11) DEFAULT NULL,
+                                     `pod_request_cpu`    decimal(14, 3) DEFAULT NULL,
+                                     `pod_request_memory` int(11) DEFAULT NULL,
+                                     `tag`                varchar(100)   DEFAULT NULL,
+                                     `limits_cpu`         decimal(14, 3) DEFAULT NULL,
+                                     `k8s`                varchar(100)   DEFAULT NULL,
+                                     `create_time`        datetime       DEFAULT NULL COMMENT 'create time',
+                                     `update_time`        datetime       DEFAULT NULL COMMENT 'update time',
+                                     PRIMARY KEY (`id`),
+                                     UNIQUE KEY `k8s_namespace_unique` (`namespace`,`k8s`)
 ) ENGINE= INNODB AUTO_INCREMENT= 1 DEFAULT CHARSET= utf8;
 
 
@@ -1919,21 +1919,22 @@ CREATE TABLE `t_ds_k8s_namespace` (
 -- Table structure for t_ds_alert_send_status
 -- ----------------------------
 DROP TABLE IF EXISTS t_ds_alert_send_status;
-CREATE TABLE t_ds_alert_send_status(
-   `id`                       int(11) NOT NULL AUTO_INCREMENT,
-   `alert_id`                 int(11) NOT NULL,
-   `alert_plugin_instance_id` int(11) NOT NULL,
-   `send_status`              tinyint(4) DEFAULT '0',
-   `log`                      text,
-   `create_time`              datetime DEFAULT NULL COMMENT 'create time',
-   PRIMARY KEY (`id`),
-   UNIQUE KEY `alert_send_status_unique` (`alert_id`,`alert_plugin_instance_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+DROP TABLE IF EXISTS `t_ds_fav_task`;
 
 -- ----------------------------
 -- Table structure for t_ds_fav_task
 -- ----------------------------
-DROP TABLE IF EXISTS `t_ds_fav_task`;
+CREATE TABLE t_ds_alert_send_status
+(
+    `id`                       int(11) NOT NULL AUTO_INCREMENT,
+    `alert_id`                 int(11) NOT NULL,
+    `alert_plugin_instance_id` int(11) NOT NULL,
+    `send_status`              tinyint(4) DEFAULT '0',
+    `log`                      text,
+    `create_time`              datetime DEFAULT NULL COMMENT 'create time',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `alert_send_status_unique` (`alert_id`,`alert_plugin_instance_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 CREATE TABLE `t_ds_fav_task`
 (
     `id`        bigint      NOT NULL AUTO_INCREMENT COMMENT 'favorite task id',
@@ -1943,3 +1944,21 @@ CREATE TABLE `t_ds_fav_task`
 ) ENGINE = InnoDB
   AUTO_INCREMENT = 1
   DEFAULT CHARSET = utf8;
+
+-- ----------------------------
+-- Table structure for t_ds_isolation_task
+-- ----------------------------
+DROP TABLE if exists `t_ds_isolation_task`;
+CREATE TABLE `t_ds_isolation_task`
+(
+    `id`                     bigint       NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+    `workflow_instance_id`   bigint       NOT NULL COMMENT 'workflowInstanceId of the isolation task',
+    `workflow_instance_name` varchar(255) NOT NULL COMMENT 'workflowInstanceName of the isolation task',
+    `task_name`              varchar(255) NOT NULL COMMENT 'isolation task name',
+    `task_code`              bigint       NOT NULL COMMENT 'isolation task code',
+    `status`                 tinyint(4) DEFAULT '0',
+    `create_time`            timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+    `update_time`            timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `workflow_instance_index` (`workflow_instance_id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8;

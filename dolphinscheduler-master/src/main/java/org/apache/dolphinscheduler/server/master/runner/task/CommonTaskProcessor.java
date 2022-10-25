@@ -17,6 +17,7 @@
 
 package org.apache.dolphinscheduler.server.master.runner.task;
 
+import com.google.auto.service.AutoService;
 import org.apache.commons.lang.StringUtils;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
@@ -33,8 +34,6 @@ import org.apache.dolphinscheduler.service.queue.TaskPriorityQueue;
 import org.apache.dolphinscheduler.service.queue.TaskPriorityQueueImpl;
 
 import java.util.Date;
-
-import com.google.auto.service.AutoService;
 
 /**
  * common task processor
@@ -128,6 +127,27 @@ public class CommonTaskProcessor extends BaseTaskProcessor {
         logger.info("master success kill taskInstance name: {} taskInstance id: {}",
                 taskInstance.getName(), taskInstance.getId());
         return true;
+    }
+
+    @Override
+    protected boolean isolateTask() {
+        try {
+            if (taskInstance.getState().typeIsFinished()) {
+                return true;
+            }
+            taskInstance.setState(ExecutionStatus.KILL_BY_ISOLATION);
+            taskInstance.setEndTime(new Date());
+            processService.updateTaskInstance(taskInstance);
+            if (StringUtils.isNotEmpty(taskInstance.getHost())) {
+                killRemoteTask();
+            }
+            logger.info("Master isolate taskInstance success, taskName: {} taskInstanceId: {}", taskInstance.getName(),
+                    taskInstance.getId());
+            return true;
+        } catch (Exception e) {
+            logger.error("Master isolate task error, taskInstance id: {}", taskInstance.getId(), e);
+            return false;
+        }
     }
 
     @Override

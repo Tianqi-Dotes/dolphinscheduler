@@ -201,6 +201,17 @@ public class SubTaskProcessor extends BaseTaskProcessor {
         return true;
     }
 
+    @Override
+    protected boolean isolateTask() {
+        ProcessInstance subProcessInstance =
+                processService.findSubProcessInstance(processInstance.getId(), taskInstance.getId());
+        if (subProcessInstance == null || taskInstance.getState().typeIsFinished()) {
+            return true;
+        }
+        // todo: isolate sub process
+        return true;
+    }
+
     private void sendToSubProcess() {
         StateEventChangeCommand stateEventChangeCommand = new StateEventChangeCommand(
                 processInstance.getId(), taskInstance.getId(), subProcessInstance.getState(),

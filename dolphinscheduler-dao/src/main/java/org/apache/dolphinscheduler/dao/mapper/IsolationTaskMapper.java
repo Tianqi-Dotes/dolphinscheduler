@@ -10,23 +10,17 @@ import java.util.List;
 
 public interface IsolationTaskMapper extends BaseMapper<IsolationTask> {
 
-    IPage<IsolationTask> pageQuery(@Param("workflowInstanceName") String workflowInstanceName,
-                                   @Param("taskName") String taskName,
-                                   IPage<IsolationTask> page);
+    IPage<IsolationTask> pageQuery(IPage<IsolationTask> page,
+                                   @Param("workflowInstanceName") String workflowInstanceName,
+                                   @Param("taskName") String taskName);
 
     List<IsolationTask> queryByTaskCodes(@NonNull @Param("workflowInstanceId") Integer workflowInstanceId,
                                          @NonNull @Param("taskCodes") List<Long> taskCodes);
 
-    void updateIsolationTaskStatus(@Param("id") long isolationTaskId,
-                                   @Param("status") int status);
-
-    int deleteByIdAndStatus(@Param("id") long isolationTaskId,
-                            @Param("status") int status);
-
-    List<IsolationTask> queryByWorkflowInstanceId(@Param("workflowInstanceId") Integer workflowInstanceId,
-                                                  @Param("status") int status);
+    List<IsolationTask> queryByWorkflowInstanceId(@Param("workflowInstanceId") Integer workflowInstanceId);
 
     void batchInsert(@Param("isolationTasks") List<IsolationTask> isolationTasks);
 
-    List<IsolationTask> queryByStatus(@Param("status") int code);
+    List<IsolationTask> queryAllIsolationTask();
+
 }

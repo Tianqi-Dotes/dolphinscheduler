@@ -5,22 +5,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.dolphinscheduler.remote.command.Command;
 import org.apache.dolphinscheduler.remote.command.CommandType;
 import org.apache.dolphinscheduler.remote.processor.NettyRequestProcessor;
-import org.apache.dolphinscheduler.server.master.service.IsolationTaskManager;
+import org.apache.dolphinscheduler.server.master.service.IsolationMetadataManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class RefreshIsolationTaskProcessor implements NettyRequestProcessor {
+public class RefreshIsolationMetadataProcessor implements NettyRequestProcessor {
 
     @Autowired
-    private IsolationTaskManager isolationTaskManager;
+    private IsolationMetadataManager isolationTaskManager;
 
     @Override
     public void process(Channel channel, Command command) {
-        if (command.getType() != CommandType.REFRESH_ISOLATION_REQUEST) {
+        if (command.getType() != CommandType.REFRESH_ISOLATION_METADATA_REQUEST) {
             throw new IllegalArgumentException(String.format("The current rpc command: %s is invalidated", command));
         }
-        isolationTaskManager.refreshIsolationTaskMapFromDB();
+        isolationTaskManager.refreshIsolationTaskMetadata();
     }
 }

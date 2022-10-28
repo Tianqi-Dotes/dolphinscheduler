@@ -23,11 +23,13 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.dao.mapper.ProcessInstanceMapper;
 import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
+import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Repository
@@ -45,8 +47,8 @@ public class ProcessInstanceDaoImpl implements ProcessInstanceDao {
     }
 
     @Override
-    public ProcessInstance queryProcessInstanceById(@NonNull Integer processInstanceId) {
-        return processInstanceMapper.selectById(processInstanceId);
+    public Optional<ProcessInstance> queryProcessInstanceById(@NonNull Integer processInstanceId) {
+        return Optional.ofNullable(processInstanceMapper.selectById(processInstanceId));
     }
 
     @Override
@@ -66,5 +68,10 @@ public class ProcessInstanceDaoImpl implements ProcessInstanceDao {
         } else {
             return insertProcessInstance(processInstance);
         }
+    }
+
+    @Override
+    public List<ProcessInstance> queryProcessInstanceByStatus(@NonNull ExecutionStatus executionStatus) {
+        return processInstanceMapper.queryByStatus(executionStatus.getCode());
     }
 }

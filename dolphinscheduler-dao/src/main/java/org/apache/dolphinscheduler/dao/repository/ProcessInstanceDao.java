@@ -19,14 +19,16 @@ package org.apache.dolphinscheduler.dao.repository;
 
 import lombok.NonNull;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
+import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ProcessInstanceDao {
 
     List<ProcessInstance> queryProcessInstanceByIds(List<Integer> processInstanceIds);
 
-    ProcessInstance queryProcessInstanceById(@NonNull Integer processInstanceId);
+    Optional<ProcessInstance> queryProcessInstanceById(@NonNull Integer processInstanceId);
 
     int insertProcessInstance(ProcessInstance processInstance);
 
@@ -39,4 +41,5 @@ public interface ProcessInstanceDao {
      */
     int upsertProcessInstance(ProcessInstance processInstance);
 
+    List<ProcessInstance> queryProcessInstanceByStatus(@NonNull ExecutionStatus pauseByIsolation);
 }

@@ -15,17 +15,8 @@ public interface IsolationTaskChecker {
                                      ProcessInstance processInstance,
                                      @NonNull List<IsolationTaskExcelParseVO> voList);
 
-    void checkCanOnlineTaskIsolation(@NonNull User loginUser,
-                                     long projectCode,
-                                     @NonNull ProcessInstance processInstance,
-                                     @NonNull IsolationTask isolationTask);
-
     void checkCanListingTaskIsolation(@NonNull User loginUser,
                                       long projectCode);
-
-    void checkCanDeleteTaskIsolation(@NonNull User loginUser,
-                                     long projectCode,
-                                     long isolationId);
 
     void checkCanCancelTaskIsolation(@NonNull User loginUser,
                                      long projectCode,

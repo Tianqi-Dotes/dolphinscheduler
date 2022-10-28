@@ -57,4 +57,7 @@ public interface CommandMapper extends BaseMapper<Command> {
                                          @Param("thisMasterSlot") int thisMasterSlot);
 
     void batchInsertCommand(List<Command> commands);
+
+    List<Command> queryRecoveryCoronationCommandByWorkflowInstanceId(@Param("workflowInstanceId") long workflowInstanceId,
+                                                                     @Param("command_type") int commandType);
 }

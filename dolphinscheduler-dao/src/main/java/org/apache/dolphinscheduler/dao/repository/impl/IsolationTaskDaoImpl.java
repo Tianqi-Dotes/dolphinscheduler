@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.dolphinscheduler.dao.dto.IsolationTaskStatus;
 import org.apache.dolphinscheduler.dao.entity.IsolationTask;
 import org.apache.dolphinscheduler.dao.mapper.IsolationTaskMapper;
 import org.apache.dolphinscheduler.dao.repository.IsolationTaskDao;
@@ -29,7 +28,12 @@ public class IsolationTaskDaoImpl implements IsolationTaskDao {
                                                        int pageNumber,
                                                        int pageSize) {
         Page<IsolationTask> page = new Page<>(pageNumber, pageSize);
-        return isolationTaskMapper.pageQuery(workflowInstanceName, taskName, page);
+        return isolationTaskMapper.pageQuery(page, workflowInstanceName, taskName);
+    }
+
+    @Override
+    public List<IsolationTask> queryAllIsolationTask() {
+        return isolationTaskMapper.queryAllIsolationTask();
     }
 
     @Override
@@ -41,9 +45,8 @@ public class IsolationTaskDaoImpl implements IsolationTaskDao {
     }
 
     @Override
-    public List<IsolationTask> queryByWorkflowInstanceId(Integer workflowInstanceId,
-                                                         IsolationTaskStatus isolationTaskStatus) {
-        return isolationTaskMapper.queryByWorkflowInstanceId(workflowInstanceId, isolationTaskStatus.getCode());
+    public List<IsolationTask> queryByWorkflowInstanceId(Integer workflowInstanceId) {
+        return isolationTaskMapper.queryByWorkflowInstanceId(workflowInstanceId);
     }
 
     @Override
@@ -52,28 +55,13 @@ public class IsolationTaskDaoImpl implements IsolationTaskDao {
     }
 
     @Override
-    public List<IsolationTask> queryByIds(List<Long> isolationTaskIds) {
-        return isolationTaskMapper.selectBatchIds(isolationTaskIds);
-    }
-
-    @Override
-    public List<IsolationTask> queryByStatus(@NonNull IsolationTaskStatus isolationTaskStatus) {
-        return isolationTaskMapper.queryByStatus(isolationTaskStatus.getCode());
-    }
-
-    @Override
-    public int deleteByIdAndStatus(long id, IsolationTaskStatus status) {
-        return isolationTaskMapper.deleteByIdAndStatus(id, status.getCode());
+    public int deleteById(long id) {
+        return isolationTaskMapper.deleteById(id);
     }
 
     @Override
     public void insert(IsolationTask isolationTask) {
         isolationTaskMapper.insert(isolationTask);
-    }
-
-    @Override
-    public void updateIsolationTaskStatus(long isolationTaskId, IsolationTaskStatus isolationTaskStatus) {
-        isolationTaskMapper.updateIsolationTaskStatus(isolationTaskId, isolationTaskStatus.getCode());
     }
 
     @Override

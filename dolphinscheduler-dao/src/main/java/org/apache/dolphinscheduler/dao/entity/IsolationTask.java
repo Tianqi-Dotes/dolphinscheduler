@@ -28,8 +28,6 @@ public class IsolationTask {
 
     private long taskCode;
 
-    private int status;
-
     private Date createTime;
 
     private Date updateTime;

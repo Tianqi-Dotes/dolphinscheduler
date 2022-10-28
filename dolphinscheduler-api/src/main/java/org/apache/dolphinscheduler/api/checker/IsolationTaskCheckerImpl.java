@@ -9,7 +9,6 @@ import org.apache.dolphinscheduler.api.vo.IsolationTaskExcelParseVO;
 import org.apache.dolphinscheduler.common.graph.DAG;
 import org.apache.dolphinscheduler.common.model.TaskNode;
 import org.apache.dolphinscheduler.common.model.TaskNodeRelation;
-import org.apache.dolphinscheduler.dao.dto.IsolationTaskStatus;
 import org.apache.dolphinscheduler.dao.entity.IsolationTask;
 import org.apache.dolphinscheduler.dao.entity.ProcessDefinitionLog;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
@@ -26,14 +25,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.ISOLATION_TASK_CANCEL;
-import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.ISOLATION_TASK_DELETE;
 import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.ISOLATION_TASK_LIST;
-import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.ISOLATION_TASK_ONLINE;
 import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.ISOLATION_TASK_SUBMIT;
-import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_CANCEL_ERROR_THE_ISOLATION_ALREADY_CANCEL;
-import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_DELETE_ERROR_IS_NOT_OFFLINE;
-import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_NOT_EXIST;
-import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_ONLINE_ERROR_ALREADY_ONLINE;
 import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_ONLINE_ERROR_PROCESS_NOT_BELONG_TO_PROJECT_ERROR;
 import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_SUBMIT_ERROR_EXIST_SUB_ISOLATION_TASK;
 import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_SUBMIT_ERROR_TASK_NOT_EXIST;
@@ -80,40 +73,10 @@ public class IsolationTaskCheckerImpl implements IsolationTaskChecker {
     }
 
     @Override
-    public void checkCanOnlineTaskIsolation(@NonNull User loginUser,
-                                            long projectCode,
-                                            ProcessInstance processInstance,
-                                            @NonNull IsolationTask isolationTask) {
-        Project project = projectService.queryByCode(loginUser, projectCode);
-        checkOnlineIsolationTaskAuth(loginUser, project, processInstance);
-
-        if (IsolationTaskStatus.ONLINE.getCode() == isolationTask.getStatus()) {
-            throw new ServiceException(ISOLATION_TASK_ONLINE_ERROR_ALREADY_ONLINE);
-        }
-
-        String workflowInstanceName = isolationTask.getWorkflowInstanceName();
-        checkWorkflowInstanceCanSubmitIsolateTask(workflowInstanceName, processInstance);
-    }
-
-    @Override
     public void checkCanListingTaskIsolation(@NonNull User loginUser, long projectCode) {
         Project project = projectService.queryByCode(loginUser, projectCode);
 
         projectService.checkProjectAndAuth(loginUser, project, projectCode, ISOLATION_TASK_LIST);
-    }
-
-    @Override
-    public void checkCanDeleteTaskIsolation(@NonNull User loginUser,
-                                            long projectCode,
-                                            long isolationId) {
-        Project project = projectService.queryByCode(loginUser, projectCode);
-        projectService.checkProjectAndAuth(loginUser, project, projectCode, ISOLATION_TASK_DELETE);
-
-        IsolationTask isolationTask = isolationTaskDao.queryById(isolationId)
-                .orElseThrow(() -> new ServiceException(ISOLATION_TASK_NOT_EXIST));
-        if (isolationTask.getStatus() != IsolationTaskStatus.OFFLINE.getCode()) {
-            throw new ServiceException(ISOLATION_TASK_DELETE_ERROR_IS_NOT_OFFLINE);
-        }
     }
 
     @Override
@@ -127,9 +90,6 @@ public class IsolationTaskCheckerImpl implements IsolationTaskChecker {
         Project project = projectService.queryByCode(loginUser, projectCode);
         checkCancelIsolationTaskAuth(loginUser, project, processInstance);
 
-        if (isolationTask.getStatus() == IsolationTaskStatus.OFFLINE.getCode()) {
-            throw new ServiceException(ISOLATION_TASK_CANCEL_ERROR_THE_ISOLATION_ALREADY_CANCEL);
-        }
     }
 
     private void checkWorkflowInstanceCanSubmitIsolateTask(@NonNull String workflowInstanceName,
@@ -171,21 +131,6 @@ public class IsolationTaskCheckerImpl implements IsolationTaskChecker {
             throw new ServiceException(ISOLATION_TASK_SUBMIT_ERROR_WORKFLOW_INSTANCE_NOT_BELONG_TO_CURRENT_PROJECT);
         }
         projectService.checkProjectAndAuth(loginUser, project, project.getCode(), ISOLATION_TASK_SUBMIT);
-    }
-
-    private void checkOnlineIsolationTaskAuth(User loginUser, Project project, ProcessInstance processInstance) {
-        if (processInstance == null) {
-            throw new ServiceException(PROCESS_INSTANCE_NOT_EXIST);
-        }
-        ProcessDefinitionLog processDefinitionLog = processDefinitionLogDao
-                .queryProcessDefinitionByCode(processInstance.getProcessDefinitionCode(),
-                        processInstance.getProcessDefinitionVersion())
-                .orElseThrow(() -> new ServiceException(PROCESS_DEFINE_NOT_EXIST, processInstance.getName()));
-        if (processDefinitionLog.getProjectCode() != project.getCode()) {
-            throw new ServiceException(ISOLATION_TASK_ONLINE_ERROR_PROCESS_NOT_BELONG_TO_PROJECT_ERROR);
-        }
-
-        projectService.checkProjectAndAuth(loginUser, project, project.getCode(), ISOLATION_TASK_ONLINE);
     }
 
     private void checkCancelIsolationTaskAuth(User loginUser, Project project, ProcessInstance processInstance) {

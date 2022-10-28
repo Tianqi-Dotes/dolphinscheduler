@@ -20,18 +20,18 @@
 <mapper namespace="org.apache.dolphinscheduler.dao.mapper.IsolationTaskMapper">
     <sql id="baseSql">
         id
-        ,workflow_instance_id, workflow_instance_name, task_name, task_code, status, create_time, update_time
+        ,workflow_instance_id, workflow_instance_name, task_name, task_code, create_time, update_time
     </sql>
 
-    <select id="pageQuery" resultType="string">
+    <select id="pageQuery" resultType="org.apache.dolphinscheduler.dao.entity.IsolationTask">
         select
         <include refid="baseSql"/>
         from t_ds_isolation_task
         where 1 = 1
-        <if test="workflowInstanceName != null">
+        <if test="workflowInstanceName != null and workflowInstanceName != ''">
             and workflow_instance_name = #{workflowInstanceName}
         </if>
-        <if test="taskName != null">
+        <if test="taskName != null and taskName != ''">
             and task_name = #{taskName}
         </if>
     </select>
@@ -51,29 +51,21 @@
         select
         <include refid="baseSql"/>
         from t_ds_isolation_task
-        where workflow_instance_id = #{workflowInstanceId} and status = #{status}
+        where workflow_instance_id = #{workflowInstanceId}
     </select>
 
-    <select id="queryByStatus" resultType="org.apache.dolphinscheduler.dao.entity.IsolationTask">
+    <select id="queryAllIsolationTask" resultType="org.apache.dolphinscheduler.dao.entity.IsolationTask">
         select
         <include refid="baseSql"/>
         from t_ds_isolation_task
-        where  status = #{status}
     </select>
-
-    <update id="updateIsolationTaskStatus">
-        update t_ds_isolation_task
-        set status = #{status}
-        where id = #{id}
-    </update>
 
     <insert id="batchInsert">
         insert into t_ds_isolation_task (
         workflow_instance_id,
         workflow_instance_name,
         task_name,
-        task_code,
-        status
+        task_code
         )
         values
         <foreach collection="isolationTasks" item="isolationTask" separator=",">
@@ -81,17 +73,9 @@
             #{isolationTask.workflowInstanceId},
             #{isolationTask.workflowInstanceName},
             #{isolationTask.taskName},
-            #{isolationTask.taskCode},
-            #{isolationTask.status}
+            #{isolationTask.taskCode}
             )
         </foreach>
     </insert>
-
-    <delete id="deleteByIdAndStatus">
-        delete
-        from t_ds_isolation_task
-        where id = #{id}
-          and status = #{status}
-    </delete>
 
 </mapper>

@@ -30,7 +30,6 @@ import org.apache.dolphinscheduler.dao.entity.Command;
 import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.dao.mapper.ProcessInstanceMapper;
-import org.apache.dolphinscheduler.dao.repository.IsolationTaskDao;
 import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
 import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.remote.command.StateEventChangeCommand;
@@ -46,6 +45,8 @@ import org.apache.dolphinscheduler.server.master.exception.MasterException;
 import org.apache.dolphinscheduler.server.master.metrics.MasterServerMetrics;
 import org.apache.dolphinscheduler.server.master.metrics.ProcessInstanceMetrics;
 import org.apache.dolphinscheduler.server.master.registry.ServerNodeManager;
+import org.apache.dolphinscheduler.server.master.service.CoronationMetadataManager;
+import org.apache.dolphinscheduler.server.master.service.IsolationMetadataManager;
 import org.apache.dolphinscheduler.service.alert.ProcessAlertManager;
 import org.apache.dolphinscheduler.service.expand.CuringParamsService;
 import org.apache.dolphinscheduler.service.process.ProcessService;
@@ -110,7 +111,10 @@ public class MasterSchedulerBootstrap extends BaseDaemonThread implements AutoCl
     private StateEventCallbackService stateEventCallbackService;
 
     @Autowired
-    private IsolationTaskDao isolationTaskDao;
+    private CoronationMetadataManager coronationMetadataManager;
+
+    @Autowired
+    private IsolationMetadataManager isolationMetadataManager;
 
     private String masterAddress;
 
@@ -189,7 +193,8 @@ public class MasterSchedulerBootstrap extends BaseDaemonThread implements AutoCl
                                 masterConfig,
                                 stateWheelExecuteThread,
                                 curingGlobalParamsService,
-                                isolationTaskDao);
+                                isolationMetadataManager,
+                                coronationMetadataManager);
                         processInstanceExecCacheManager.cache(processInstance.getId(), workflowRunnable);
                         workflowEventQueue.addEvent(new WorkflowEvent(WorkflowEventType.START_WORKFLOW,
                                 processInstance.getId()));

@@ -341,6 +341,9 @@ public final class Constants {
     public static final String CMD_PARAM_RECOVERY_PAUSED_ISOLATED_TASK_IDS = "RecoveryPausedIsolationTaskInstanceIds";
     public static final String CMD_PARAM_RECOVERY_KILLED_ISOLATED_TASK_IDS = "RecoveryKilledIsolationTaskInstanceIds";
 
+    public static final String CMD_PARAM_RECOVERY_PAUSED_BY_CORONATION_TASK_IDS =
+            "RecoveryPausedByCoronationTaskInstanceIds";
+
     public static final String CMD_PARAM_START_PARAMS = "StartParams";
 
     public static final String CMD_PARAM_FATHER_PARAMS = "fatherParams";

@@ -16,12 +16,12 @@ import org.apache.dolphinscheduler.api.service.WorkflowDAGService;
 import org.apache.dolphinscheduler.api.transformer.CommandTransformer;
 import org.apache.dolphinscheduler.api.utils.PageInfo;
 import org.apache.dolphinscheduler.api.vo.IsolationTaskExcelParseVO;
+import org.apache.dolphinscheduler.api.vo.IsolationTaskListingVO;
 import org.apache.dolphinscheduler.common.enums.NodeType;
 import org.apache.dolphinscheduler.common.graph.DAG;
 import org.apache.dolphinscheduler.common.model.Server;
 import org.apache.dolphinscheduler.common.model.TaskNode;
 import org.apache.dolphinscheduler.common.model.TaskNodeRelation;
-import org.apache.dolphinscheduler.dao.dto.IsolationTaskStatus;
 import org.apache.dolphinscheduler.dao.entity.Command;
 import org.apache.dolphinscheduler.dao.entity.IsolationTask;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
@@ -32,7 +32,7 @@ import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
 import org.apache.dolphinscheduler.dao.repository.TaskInstanceDao;
 import org.apache.dolphinscheduler.dao.utils.DagHelper;
 import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
-import org.apache.dolphinscheduler.remote.command.isolation.RefreshIsolationTaskRequest;
+import org.apache.dolphinscheduler.remote.command.isolation.RefreshIsolationMetadataRequest;
 import org.apache.dolphinscheduler.remote.exceptions.RemotingException;
 import org.apache.dolphinscheduler.remote.utils.Host;
 import org.apache.dolphinscheduler.service.process.ProcessService;
@@ -49,7 +49,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_NOT_EXIST;
-import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_SUBMIT_ERROR_SEND_REQUEST_TO_MASTER_ERROR;
 
 @Slf4j
 @Service
@@ -83,7 +82,6 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
     private TaskInstanceDao taskInstanceDao;
 
     @Override
-    @Transactional
     public void submitTaskIsolations(@NonNull User loginUser,
                                      long projectCode,
                                      @NonNull IsolationTaskSubmitRequest isolationTaskSubmitRequest) {
@@ -100,7 +98,8 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
         for (Map.Entry<Integer, List<IsolationTaskExcelParseVO>> entry : workflow2VoMap.entrySet()) {
             Integer workflowInstanceId = entry.getKey();
             List<IsolationTaskExcelParseVO> vos = entry.getValue();
-            ProcessInstance processInstance = processInstanceDao.queryProcessInstanceById(workflowInstanceId);
+            ProcessInstance processInstance = processInstanceDao.queryProcessInstanceById(workflowInstanceId)
+                    .orElseThrow(() -> new ServiceException(Status.PROCESS_INSTANCE_NOT_EXIST));
             isolationTaskChecker.checkCanSubmitTaskIsolation(loginUser, projectCode, processInstance, vos);
 
             List<IsolationTask> isolationTasks = entry.getValue().stream().map(vo -> {
@@ -109,36 +108,13 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
                         .workflowInstanceName(vo.getWorkflowInstanceName())
                         .taskName(vo.getTaskName())
                         .taskCode(vo.getTaskCode())
-                        .status(IsolationTaskStatus.ONLINE.getCode())
                         .build();
             }).collect(Collectors.toList());
             needToInsertIntoDB.addAll(isolationTasks);
             needToOnlineIsolations.add(Pair.of(processInstance, isolationTasks));
         }
         isolationTaskDao.batchInsert(needToInsertIntoDB);
-        // we split here to avoid rollback RPC request
-        try {
-            refreshIsolationTasks();
-        } catch (Exception ex) {
-            throw new ServiceException(ISOLATION_TASK_SUBMIT_ERROR_SEND_REQUEST_TO_MASTER_ERROR);
-        }
-    }
-
-    @Override
-    @Transactional
-    public void onlineTaskIsolation(@NonNull User loginUser, long projectCode, long isolationTaskId) {
-        IsolationTask isolationTask = isolationTaskDao.queryById(isolationTaskId)
-                .orElseThrow(() -> new ServiceException(ISOLATION_TASK_NOT_EXIST));
-        ProcessInstance processInstance =
-                processInstanceDao.queryProcessInstanceById(isolationTask.getWorkflowInstanceId());
-
-        isolationTaskChecker.checkCanOnlineTaskIsolation(loginUser, projectCode, processInstance, isolationTask);
-        isolationTaskDao.updateIsolationTaskStatus(isolationTaskId, IsolationTaskStatus.ONLINE);
-        try {
-            refreshIsolationTasks();
-        } catch (Exception ex) {
-            throw new ServiceException(Status.ISOLATION_TASK_ONLINE_ERROR);
-        }
+        sendIsolationTaskRefreshRequestToMaster();
     }
 
     @Override
@@ -150,21 +126,18 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
                 .orElseThrow(() -> new ServiceException(ISOLATION_TASK_NOT_EXIST));
 
         Integer workflowInstanceId = isolationTask.getWorkflowInstanceId();
-        ProcessInstance processInstance = processInstanceDao.queryProcessInstanceById(workflowInstanceId);
+        ProcessInstance processInstance = processInstanceDao.queryProcessInstanceById(workflowInstanceId)
+                .orElseThrow(() -> new ServiceException(Status.PROCESS_INSTANCE_NOT_EXIST));
         isolationTaskChecker.checkCanCancelTaskIsolation(loginUser, projectCode, processInstance, isolationTask);
-        isolationTaskDao.updateIsolationTaskStatus(isolationTask.getId(), IsolationTaskStatus.OFFLINE);
-        insertRecoveryCommandIfNeeded(processInstance, isolationTask);
-        try {
-            refreshIsolationTasks();
-        } catch (RemotingException | InterruptedException e) {
-            throw new ServiceException(Status.ISOLATION_TASK_CANCEL_ERROR);
-        }
+        isolationTaskDao.deleteById(isolationTask.getId());
+        insertRecoveryCommandIfNeeded(processInstance);
+        sendIsolationTaskRefreshRequestToMaster();
     }
 
     @Override
-    public PageInfo<IsolationTask> listingTaskIsolation(@NonNull User loginUser,
-                                                        long projectCode,
-                                                        @NonNull IsolationTaskListingRequest request) {
+    public PageInfo<IsolationTaskListingVO> listingTaskIsolation(@NonNull User loginUser,
+                                                                 long projectCode,
+                                                                 @NonNull IsolationTaskListingRequest request) {
         isolationTaskChecker.checkCanListingTaskIsolation(loginUser, projectCode);
 
         Integer pageNo = request.getPageNo();
@@ -175,46 +148,48 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
                 request.getTaskName(),
                 pageNo,
                 pageSize);
-
-        PageInfo<IsolationTask> pageInfo = new PageInfo<>(pageNo, pageSize);
+        List<IsolationTaskListingVO> isolationTaskListingVOList = iPage.getRecords()
+                .stream()
+                .map(isolationTask -> {
+                    return IsolationTaskListingVO.builder()
+                            .id(isolationTask.getId())
+                            .workflowInstanceId(isolationTask.getWorkflowInstanceId())
+                            .workflowInstanceName(isolationTask.getWorkflowInstanceName())
+                            // todo: set task status
+                            .taskName(isolationTask.getTaskName())
+                            .taskCode(isolationTask.getTaskCode())
+                            .createTime(isolationTask.getCreateTime())
+                            .updateTime(isolationTask.getUpdateTime())
+                            .build();
+                }).collect(Collectors.toList());
+        PageInfo<IsolationTaskListingVO> pageInfo = new PageInfo<>(pageNo, pageSize);
         pageInfo.setTotal((int) iPage.getTotal());
-        pageInfo.setTotalList(iPage.getRecords());
+        pageInfo.setTotalList(isolationTaskListingVOList);
         return pageInfo;
     }
 
-    @Override
-    public void deleteTaskIsolation(@NonNull User loginUser, long projectCode, long id) {
-        isolationTaskChecker.checkCanDeleteTaskIsolation(loginUser, projectCode, id);
-        int deleteNum = isolationTaskDao.deleteByIdAndStatus(id, IsolationTaskStatus.OFFLINE);
-        if (deleteNum <= 0) {
-            throw new ServiceException(ISOLATION_TASK_NOT_EXIST);
-        }
-    }
-
-    private void refreshIsolationTasks() throws RemotingException, InterruptedException {
+    private void sendIsolationTaskRefreshRequestToMaster() {
         List<Server> masters = registryClient.getServerList(NodeType.MASTER);
         if (CollectionUtils.isEmpty(masters)) {
             return;
         }
 
         org.apache.dolphinscheduler.remote.command.Command refreshIsolationRequest =
-                new RefreshIsolationTaskRequest().convert2Command();
+                new RefreshIsolationMetadataRequest().convert2Command();
         for (Server master : masters) {
             try {
-                apiServerRPCClient.sendSyncCommand(new Host(master.getHost(), master.getPort()),
-                        refreshIsolationRequest);
-            } catch (RemotingException | InterruptedException e) {
+                apiServerRPCClient.send(new Host(master.getHost(), master.getPort()), refreshIsolationRequest);
+            } catch (RemotingException e) {
                 log.error("Send RefreshIsolationTask request to master error, master: {}", master, e);
-                throw e;
             }
         }
     }
 
-    private void insertRecoveryCommandIfNeeded(@NonNull ProcessInstance processInstance,
-                                               @NonNull IsolationTask isolationTask) {
+    private void insertRecoveryCommandIfNeeded(@NonNull ProcessInstance processInstance) {
         if (processInstance.getState() != ExecutionStatus.PAUSE_BY_ISOLATION) {
             return;
         }
+        log.info("The current workflow instance is in PAUSE_BY_ISOLATION status, will insert a recovery command");
         int workflowInstanceId = processInstance.getId();
         // find the isolationTaskInstanceIds need to recovery
         // find the sub node is in pause or kill
@@ -225,7 +200,7 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
         List<TaskInstance> taskInstances =
                 taskInstanceDao.queryValidatedTaskInstanceByWorkflowInstanceId(workflowInstanceId);
         Set<String> onlineIsolationTaskCodes =
-                isolationTaskDao.queryByWorkflowInstanceId(workflowInstanceId, IsolationTaskStatus.ONLINE)
+                isolationTaskDao.queryByWorkflowInstanceId(workflowInstanceId)
                         .stream()
                         .map(onlineIsolationTask -> String.valueOf(onlineIsolationTask.getTaskCode()))
                         .collect(Collectors.toSet());
@@ -236,6 +211,7 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
                         onlineIsolationTaskCodes, workflowDAG))
                 .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(canRecoveryTaskInstances)) {
+            log.error("The current workflow instance has no task instance can recovery");
             return;
         }
         // find if this taskInstance still exist pre isolationTasks

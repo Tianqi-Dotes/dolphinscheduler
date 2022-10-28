@@ -2,12 +2,10 @@ package org.apache.dolphinscheduler.dao.repository;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.NonNull;
-import org.apache.dolphinscheduler.dao.dto.IsolationTaskStatus;
 import org.apache.dolphinscheduler.dao.entity.IsolationTask;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 public interface IsolationTaskDao {
 
@@ -19,21 +17,17 @@ public interface IsolationTaskDao {
                                                 int pageNumber,
                                                 int pageSize);
 
+    List<IsolationTask> queryAllIsolationTask();
+
     List<IsolationTask> queryByTaskCodes(Integer workflowInstanceId, List<Long> taskCodes);
 
-    List<IsolationTask> queryByWorkflowInstanceId(Integer workflowInstanceId, IsolationTaskStatus isolationTaskStatus);
+    List<IsolationTask> queryByWorkflowInstanceId(Integer workflowInstanceId);
 
     Optional<IsolationTask> queryById(long isolationTaskId);
 
-    List<IsolationTask> queryByIds(List<Long> isolationTaskIds);
-
-    List<IsolationTask> queryByStatus(@NonNull IsolationTaskStatus isolationTaskStatus);
-
-    int deleteByIdAndStatus(long id, IsolationTaskStatus status);
+    int deleteById(long id);
 
     void insert(IsolationTask isolationTaskDTO);
-
-    void updateIsolationTaskStatus(long isolationTaskId, IsolationTaskStatus isolationTaskStatus);
 
     void batchInsert(List<IsolationTask> isolationTasks);
 }

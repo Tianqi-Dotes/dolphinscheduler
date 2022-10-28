@@ -72,6 +72,7 @@ public class JSONUtils {
             .configure(ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true)
             .configure(READ_UNKNOWN_ENUM_VALUES_AS_NULL, true)
             .configure(REQUIRE_SETTERS_FOR_GETTERS, true)
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
             .setTimeZone(TimeZone.getDefault())
             .setDateFormat(new SimpleDateFormat(Constants.YYYY_MM_DD_HH_MM_SS));
 

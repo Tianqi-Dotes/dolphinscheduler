@@ -37,10 +37,10 @@ import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.common.utils.LoggerUtils;
 import org.apache.dolphinscheduler.common.utils.NetUtils;
-import org.apache.dolphinscheduler.dao.dto.IsolationTaskStatus;
+import org.apache.dolphinscheduler.dao.dto.CoronationTaskDTO;
+import org.apache.dolphinscheduler.dao.dto.TaskRuntimeContext;
 import org.apache.dolphinscheduler.dao.entity.Command;
 import org.apache.dolphinscheduler.dao.entity.Environment;
-import org.apache.dolphinscheduler.dao.entity.IsolationTask;
 import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.dao.entity.ProcessTaskRelation;
@@ -49,7 +49,6 @@ import org.apache.dolphinscheduler.dao.entity.Schedule;
 import org.apache.dolphinscheduler.dao.entity.TaskDefinitionLog;
 import org.apache.dolphinscheduler.dao.entity.TaskGroupQueue;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
-import org.apache.dolphinscheduler.dao.repository.IsolationTaskDao;
 import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
 import org.apache.dolphinscheduler.dao.utils.DagHelper;
 import org.apache.dolphinscheduler.plugin.task.api.enums.DependResult;
@@ -68,6 +67,8 @@ import org.apache.dolphinscheduler.server.master.metrics.TaskMetrics;
 import org.apache.dolphinscheduler.server.master.runner.task.ITaskProcessor;
 import org.apache.dolphinscheduler.server.master.runner.task.TaskAction;
 import org.apache.dolphinscheduler.server.master.runner.task.TaskProcessorFactory;
+import org.apache.dolphinscheduler.server.master.service.CoronationMetadataManager;
+import org.apache.dolphinscheduler.server.master.service.IsolationMetadataManager;
 import org.apache.dolphinscheduler.server.master.utils.TaskInstanceUtils;
 import org.apache.dolphinscheduler.server.master.utils.WorkflowInstanceUtils;
 import org.apache.dolphinscheduler.service.alert.ProcessAlertManager;
@@ -191,8 +192,11 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
 
     private final Set<String> stateCleanTaskCodes = new HashSet<>();
 
-    // isolationTaskCode -> isolatedTimes
-    private final Map<Long, Integer> isolationTaskCodesToTimesMap = new HashMap<>();
+    // TaskCode -> isolatedTimes
+    // this map store the task which will be isolated, and the times it has been isolated.
+    private final Map<Long, Integer> isolatedTaskCodesToTimesMap = new HashMap<>();
+    // TaskCode -> coronattedTimes
+    private final Map<Long, Integer> coronattedTaskCodeToTimesMap = new HashMap<>();
 
     /**
      * state event queue
@@ -214,7 +218,8 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
 
     private final CuringParamsService curingParamsService;
 
-    private final IsolationTaskDao isolationTaskDao;
+    private final IsolationMetadataManager isolationMetadataManager;
+    private final CoronationMetadataManager coronationMetadataManager;
 
     private final String masterAddress;
 
@@ -236,7 +241,8 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                                    @NonNull MasterConfig masterConfig,
                                    @NonNull StateWheelExecuteThread stateWheelExecuteThread,
                                    @NonNull CuringParamsService curingParamsService,
-                                   @NonNull IsolationTaskDao isolationTaskDao) {
+                                   @NonNull IsolationMetadataManager isolationMetadataManager,
+                                   @NonNull CoronationMetadataManager coronationMetadataManager) {
         this.processService = processService;
         this.processInstanceDao = processInstanceDao;
         this.processInstance = processInstance;
@@ -244,8 +250,9 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
         this.processAlertManager = processAlertManager;
         this.stateWheelExecuteThread = stateWheelExecuteThread;
         this.curingParamsService = curingParamsService;
-        this.isolationTaskDao = isolationTaskDao;
+        this.isolationMetadataManager = isolationMetadataManager;
         this.masterAddress = NetUtils.getAddr(masterConfig.getListenPort());
+        this.coronationMetadataManager = coronationMetadataManager;
         TaskMetrics.registerTaskPrepared(readyToSubmitTaskQueue::size);
     }
 
@@ -393,6 +400,13 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                 if (!processInstance.isBlocked()) {
                     submitPostNode(Long.toString(taskInstance.getTaskCode()));
                 }
+                if (coronationMetadataManager.isInCoronationMode()
+                        && coronattedTaskCodeToTimesMap.containsKey(taskInstance.getTaskCode())) {
+                    // The current task is coronation task and is success
+                    // we need to delete the coronation metadata in db, and send request to all master
+                    coronationMetadataManager.deleteCoronationMetadataInDB(taskInstance.getTaskCode());
+                    coronattedTaskCodeToTimesMap.remove(taskInstance.getTaskCode());
+                }
             } else if (taskInstance.taskCanRetry() && processInstance.getState() != ExecutionStatus.READY_STOP) {
                 // retry task
                 logger.info("Retry taskInstance taskInstance state: {}", taskInstance.getState());
@@ -453,31 +467,35 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
         }
     }
 
-    public void onlineTaskIsolation(long taskCode) {
+    public void addTaskIsolation(long taskCode) {
         try {
             LoggerUtils.setWorkflowInstanceIdMDC(processInstance.getId());
             // find the post running task
-            Set<String> needToOnlineIsolationTaskCodes = DagHelper.getAllPostNodes(Long.toString(taskCode), dag);
-            // if the current task is finished, kill the post task
-            // we need to submit an online isolation task event, otherwise there may exist concurrent problem
-            for (String isolationTaskCodeStr : needToOnlineIsolationTaskCodes) {
-                Long isolationTaskCode = Long.valueOf(isolationTaskCodeStr);
-                isolationTaskCodesToTimesMap.put(isolationTaskCode,
-                        isolationTaskCodesToTimesMap.getOrDefault(isolationTaskCode, 0) + 1);
-                ITaskProcessor iTaskProcessor = activeTaskProcessorMaps.get(isolationTaskCode);
-                if (iTaskProcessor == null) {
-                    logger.warn("The task has not been initialized, shouldn't need to isolated, taskCode: {}",
-                            isolationTaskCode);
-                    continue;
-                }
-                iTaskProcessor.action(TaskAction.ISOLATE);
-                StateEvent stateEvent = new StateEvent();
-                stateEvent.setType(StateEventType.TASK_STATE_CHANGE);
-                stateEvent.setProcessInstanceId(this.processInstance.getId());
-                stateEvent.setTaskInstanceId(iTaskProcessor.taskInstance().getId());
-                stateEvent.setExecutionStatus(iTaskProcessor.taskInstance().getState());
-                this.addStateEvent(stateEvent);
-            }
+            DagHelper.getAllPostNodes(Long.toString(taskCode), dag)
+                    .stream()
+                    .map(Long::parseLong)
+                    .forEach(isolatedTaskCode -> {
+                        // if the current task is finished, kill the post task
+                        // we need to submit an online isolation task event, otherwise there may exist concurrent
+                        // problem
+                        isolatedTaskCodesToTimesMap.put(isolatedTaskCode,
+                                isolatedTaskCodesToTimesMap.getOrDefault(isolatedTaskCode, 0) + 1);
+                        ITaskProcessor iTaskProcessor = activeTaskProcessorMaps.get(isolatedTaskCode);
+                        if (iTaskProcessor == null) {
+                            logger.warn("The task has not been initialized, shouldn't need to isolated, taskCode: {}",
+                                    isolatedTaskCode);
+                            return;
+                        }
+                        iTaskProcessor.action(TaskAction.ISOLATE);
+                        StateEvent stateEvent = new StateEvent();
+                        stateEvent.setType(StateEventType.TASK_STATE_CHANGE);
+                        stateEvent.setProcessInstanceId(this.processInstance.getId());
+                        stateEvent.setTaskInstanceId(iTaskProcessor.taskInstance().getId());
+                        stateEvent.setExecutionStatus(iTaskProcessor.taskInstance().getState());
+                        this.addStateEvent(stateEvent);
+
+                    });
+
         } finally {
             LoggerUtils.removeWorkflowInstanceIdMDC();
         }
@@ -486,12 +504,11 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
     public void cancelTaskIsolation(long taskCode) {
         try {
             LoggerUtils.setWorkflowInstanceIdMDC(processInstance.getId());
-            // todo:
             // restart the killed/ paused task
-            Set<String> needToOfflineIsolationTaskCodes = DagHelper.getAllPostNodes(Long.toString(taskCode), dag);
-            for (String needToOfflineIsolationTaskCodeStr : needToOfflineIsolationTaskCodes) {
-                Long isolationTaskCode = Long.valueOf(needToOfflineIsolationTaskCodeStr);
-                Integer isolateTimes = isolationTaskCodesToTimesMap.get(isolationTaskCode);
+            Set<String> needToCancelIsolationTaskCodes = DagHelper.getAllPostNodes(Long.toString(taskCode), dag);
+            for (String needToCancelIsolationTaskCodeStr : needToCancelIsolationTaskCodes) {
+                Long isolationTaskCode = Long.valueOf(needToCancelIsolationTaskCodeStr);
+                Integer isolateTimes = isolatedTaskCodesToTimesMap.get(isolationTaskCode);
                 if (isolateTimes == null) {
                     logger.warn(
                             "The current task has not been isolated, so it don't need to offline isolation, taskCode: {}",
@@ -499,7 +516,7 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                     continue;
                 }
                 if (isolateTimes == 1) {
-                    isolationTaskCodesToTimesMap.remove(isolationTaskCode);
+                    isolatedTaskCodesToTimesMap.remove(isolationTaskCode);
                     ITaskProcessor iTaskProcessor = activeTaskProcessorMaps.get(isolationTaskCode);
                     if (iTaskProcessor == null) {
                         // the current task has not been submitted
@@ -521,7 +538,7 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                         continue;
                     }
                 } else {
-                    isolationTaskCodesToTimesMap.put(isolationTaskCode, isolateTimes - 1);
+                    isolatedTaskCodesToTimesMap.put(isolationTaskCode, isolateTimes - 1);
                 }
 
             }
@@ -899,15 +916,28 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
         }
         // generate process dag
         dag = DagHelper.buildDagGraph(processDag);
-        List<IsolationTask> isolationTasks =
-                isolationTaskDao.queryByWorkflowInstanceId(processInstance.getId(), IsolationTaskStatus.ONLINE);
-        for (IsolationTask isolationTask : isolationTasks) {
-            Set<String> allPostNodes = DagHelper.getAllPostNodes(Long.toString(isolationTask.getTaskCode()), dag);
-            allPostNodes.forEach(postNode -> {
-                isolationTaskCodesToTimesMap.put(isolationTask.getTaskCode(),
-                        isolationTaskCodesToTimesMap.getOrDefault(isolationTask.getTaskCode(), 0) + 1);
-            });
-        }
+        isolationMetadataManager.queryIsolationTasksByWorkflowInstanceId(processInstance.getId())
+                .forEach(isolationTask -> {
+                    DagHelper.getAllPostNodes(Long.toString(isolationTask.getTaskCode()), dag)
+                            .stream()
+                            .map(Long::parseLong)
+                            .forEach(taskCode -> {
+                                isolatedTaskCodesToTimesMap.put(
+                                        taskCode,
+                                        isolatedTaskCodesToTimesMap.getOrDefault(taskCode, 0) + 1);
+                            });
+                });
+        coronationMetadataManager.getCoronationTasksByWorkflowInstanceId(processInstance.getId())
+                .forEach(coronationTask -> {
+                    DagHelper.getAllPreNodes(Long.toString(coronationTask.getTaskCode()), dag)
+                            .stream()
+                            .map(Long::parseLong)
+                            .forEach(taskCode -> {
+                                coronattedTaskCodeToTimesMap.put(
+                                        taskCode,
+                                        coronattedTaskCodeToTimesMap.getOrDefault(taskCode, 0) + 1);
+                            });
+                });
         logger.info("Build dag success, dag: {}", dag);
     }
 
@@ -1043,11 +1073,28 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
      */
     private Optional<TaskInstance> submitTaskExec(TaskInstance taskInstance) {
         try {
-            if (isolationTaskCodesToTimesMap.containsKey(taskInstance.getTaskCode())) {
+            // todo: use TaskInstanceDTO
+            TaskRuntimeContext taskRuntimeContext = new TaskRuntimeContext();
+            if (isolatedTaskCodesToTimesMap.containsKey(taskInstance.getTaskCode())) {
+                taskRuntimeContext.setIsolationTask(
+                        isolationMetadataManager.isIsolatedTask(processInstance.getId(), taskInstance.getTaskCode()));
+                taskRuntimeContext.setHasBeenIsolated(true);
                 taskInstance.setState(ExecutionStatus.PAUSE_BY_ISOLATION);
                 logger.info("The current task has been isolated, will set status to PAUSE_BY_ISOLATION, taskCode: {}",
                         taskInstance.getTaskCode());
             }
+            if (coronationMetadataManager.isInCoronationMode()) {
+                if (!coronattedTaskCodeToTimesMap.containsKey(taskInstance.getTaskCode())) {
+                    taskInstance.setState(ExecutionStatus.PAUSE_BY_CORONATION);
+                    logger.info(
+                            "The current server mode is in coronation, and the task: {} is not in coronation list, will pause it",
+                            taskInstance.getTaskCode());
+                }
+                taskRuntimeContext.setCoronationTask(coronationMetadataManager.isCoronationTask(processInstance.getId(),
+                        taskInstance.getTaskCode()));
+                taskRuntimeContext.setHasBeenCoronatted(true);
+            }
+            taskInstance.setRuntimeContext(JSONUtils.toJsonString(taskRuntimeContext));
 
             // package task instance before submit
             processService.packageTaskInstance(taskInstance, processInstance);
@@ -1784,6 +1831,14 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
             if (task == null) {
                 continue;
             }
+            if (coronationMetadataManager.isInCoronationMode()
+                    && skipTaskNodeMap.containsKey(Long.toString(task.getTaskCode()))) {
+                logger.info(
+                        "The current server mode is in coronation, and the task: {} is in skip list, will ignore this task",
+                        task.getTaskCode());
+                continue;
+            }
+
             // stop tasks which is retrying if forced success happens
             if (task.taskCanRetry()) {
                 TaskInstance retryTask = processService.findTaskInstanceById(task.getId());
@@ -1918,6 +1973,65 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                     globalParamList.add(new Property(startParam.getKey(), IN, VARCHAR, startParam.getValue()));
                 }
             }
+        }
+    }
+
+    /**
+     * Add the task in coronation list, if the task is pause by coronation, will recovery it.
+     * if the task is in skip list, will ignore the coronation.
+     */
+    public void onlineTaskCoronation(CoronationTaskDTO coronationTask) {
+        // set the forbidden task nodes
+        long taskCode = coronationTask.getTaskCode();
+        coronationTask.getForbiddenUpstreamTasks().forEach(forbiddenTaskNode -> {
+            String forbiddenTaskNodeStr = Long.toString(forbiddenTaskNode.getTaskCode());
+            skipTaskNodeMap.put(forbiddenTaskNodeStr, dag.getNode(forbiddenTaskNodeStr));
+        });
+        // find the upstream task
+        Set<String> parentNodes = DagHelper.getAllPreNodes(Long.toString(taskCode), dag);
+        for (String parentNodeCodeStr : parentNodes) {
+            long parentNodeCode = Long.parseLong(parentNodeCodeStr);
+            if (skipTaskNodeMap.containsKey(parentNodeCodeStr)) {
+                logger.info("The parent node: {} is in skip list, no need to coronation", parentNodeCodeStr);
+                continue;
+            }
+            coronattedTaskCodeToTimesMap.put(parentNodeCode,
+                    coronattedTaskCodeToTimesMap.getOrDefault(taskCode, 0) + 1);
+            Integer parentNodeInstanceId = validTaskMap.get(parentNodeCode);
+            if (parentNodeInstanceId != null) {
+                TaskInstance taskInstance = activeTaskProcessorMaps.get(parentNodeInstanceId).taskInstance();
+                if (taskInstance.getState().typeIsPauseByCoronation()) {
+                    // resubmit the task to standbylist, this task will be resubmit again.
+                    taskInstance.setState(ExecutionStatus.SUBMITTED_SUCCESS);
+                    logger.info(
+                            "The current task: {} has been added to coronation, will recovery from pause_by_coronation, now set the status to submitted_success, it will submit again",
+                            parentNodeCode);
+                    addTaskToStandByList(taskInstance);
+                    continue;
+                }
+            } else {
+                logger.info("The current task: {} has been added to coronation", parentNodeCode);
+            }
+        }
+    }
+
+    /**
+     * Cancel the coronation task, will only remove the task in coronation task.
+     */
+    public void cancelTaskCoronation(CoronationTaskDTO coronationTask) {
+        Set<String> parentNodes = DagHelper.getAllPreNodes(Long.toString(coronationTask.getTaskCode()), dag);
+        for (String parentNodeStr : parentNodes) {
+            long parentNode = Long.parseLong(parentNodeStr);
+            Integer coronationTimes = coronattedTaskCodeToTimesMap.get(parentNode);
+            if (coronationTimes == null) {
+                continue;
+            }
+            if (coronationTimes == 1) {
+                logger.info("The current task: {} has been removed from coronation list", parentNode);
+                coronattedTaskCodeToTimesMap.remove(parentNode);
+                continue;
+            }
+            coronattedTaskCodeToTimesMap.put(parentNode, coronationTimes - 1);
         }
     }
 

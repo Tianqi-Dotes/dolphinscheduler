@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.dolphinscheduler.common.Constants.CMD_PARAM_RECOVERY_PAUSED_BY_CORONATION_TASK_IDS;
 import static org.apache.dolphinscheduler.common.Constants.CMD_PARAM_RECOVERY_START_NODE_STRING;
 import static org.apache.dolphinscheduler.common.Constants.CMD_PARAM_START_NODES;
 import static org.apache.dolphinscheduler.common.Constants.COMMA;
@@ -38,6 +39,8 @@ public class WorkflowInstanceUtils {
                 return getStartTaskInstanceIdsFromStateCleanParam(processInstance);
             case RECOVERY_FROM_ISOLATION_TASKS:
                 return getStartTaskInstanceIdsFromRecoverIsolationParam(processInstance);
+            case RECOVERY_FROM_CORONATION_PAUSE_TASKS:
+                return getStartTaskInstanceIdsFromRecoverCoronationParam(processInstance);
             default:
                 return Collections.emptyList();
         }
@@ -85,6 +88,21 @@ public class WorkflowInstanceUtils {
         result.addAll(recoveryPausedIsolationIds);
         result.addAll(recoveryKilledIsolationIds);
         return result;
+    }
+
+    public static List<Integer> getStartTaskInstanceIdsFromRecoverCoronationParam(@NonNull ProcessInstance processInstance) {
+        Map<String, String> commandParamMap = JSONUtils.toMap(processInstance.getCommandParam());
+        if (MapUtils.isEmpty(commandParamMap)) {
+            return Collections.emptyList();
+        }
+        List<Integer> stateCleanTaskInstanceIds =
+                JSONUtils.parseObject(commandParamMap.get(CMD_PARAM_RECOVERY_PAUSED_BY_CORONATION_TASK_IDS),
+                        new TypeReference<ArrayList<Integer>>() {
+                        });
+        if (stateCleanTaskInstanceIds == null) {
+            return Collections.emptyList();
+        }
+        return stateCleanTaskInstanceIds;
     }
 
     public static List<String> getStartNodeName(@NonNull ProcessInstance processInstance) {

@@ -258,4 +258,6 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
 
     ProcessInstance loadNextProcess4Serial(@Param("processDefinitionCode") Long processDefinitionCode,
                                            @Param("state") int state, @Param("id") int id);
+
+    List<ProcessInstance> queryByStatus(@Param("state") int code);
 }

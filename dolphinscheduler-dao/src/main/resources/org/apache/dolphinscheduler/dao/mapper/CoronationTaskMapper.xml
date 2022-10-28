@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.apache.dolphinscheduler.dao.mapper.CoronationTaskMapper">
+    <sql id="baseSql">
+        id
+        ,workflow_instance_id, workflow_instance_name, task_name, task_code, forbidden_upstream_tasks, create_time, update_time
+    </sql>
+
+    <select id="pageQueryCoronationTask" resultType="org.apache.dolphinscheduler.dao.entity.CoronationTask">
+        select
+        <include refid="baseSql"/>
+        from t_ds_coronation_task
+        where 1 = 1
+        <if test="workflowInstanceName != null and workflowInstanceName != ''">
+            and workflow_instance_name = #{workflowInstanceName}
+        </if>
+        <if test="taskName != null and taskName != ''">
+            and task_name = #{taskName}
+        </if>
+    </select>
+
+    <select id="queryAllCoronationTasks" resultType="org.apache.dolphinscheduler.dao.entity.CoronationTask">
+        select
+        <include refid="baseSql"/>
+        from t_ds_coronation_task
+    </select>
+
+    <select id="queryAllCoronationTaskNumber" resultType="java.lang.Integer">
+        select count(1) from t_ds_coronation_task
+    </select>
+
+    <insert id="batchInsert">
+        insert into t_ds_coronation_task (
+        workflow_instance_id,
+        workflow_instance_name,
+        task_name,
+        task_code,
+        forbidden_upstream_tasks
+        )
+        values
+        <foreach collection="coronationTasks" item="coronationTask" separator=",">
+            (
+            #{coronationTask.workflowInstanceId},
+            #{coronationTask.workflowInstanceName},
+            #{coronationTask.taskName},
+            #{coronationTask.taskCode},
+            #{coronationTask.forbiddenUpstreamTasks}
+            )
+        </foreach>
+    </insert>
+
+</mapper>

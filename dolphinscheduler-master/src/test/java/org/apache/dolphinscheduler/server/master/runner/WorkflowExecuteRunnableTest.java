@@ -17,19 +17,9 @@
 
 package org.apache.dolphinscheduler.server.master.runner;
 
-import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_COMPLEMENT_DATA_END_DATE;
-import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_COMPLEMENT_DATA_START_DATE;
-import static org.apache.dolphinscheduler.common.Constants.CMD_PARAM_RECOVERY_START_NODE_STRING;
-import static org.apache.dolphinscheduler.common.Constants.CMD_PARAM_START_NODES;
-
-import static org.powermock.api.mockito.PowerMockito.mock;
-
 import org.apache.dolphinscheduler.common.enums.CommandType;
 import org.apache.dolphinscheduler.common.enums.Flag;
 import org.apache.dolphinscheduler.common.enums.ProcessExecutionTypeEnum;
-import org.apache.dolphinscheduler.dao.repository.IsolationTaskDao;
-import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
-import org.apache.dolphinscheduler.service.expand.CuringParamsService;
 import org.apache.dolphinscheduler.common.graph.DAG;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
@@ -37,12 +27,25 @@ import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.dao.entity.Schedule;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
+import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
 import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.server.master.config.MasterConfig;
 import org.apache.dolphinscheduler.server.master.dispatch.executor.NettyExecutorManager;
+import org.apache.dolphinscheduler.server.master.service.CoronationMetadataManager;
+import org.apache.dolphinscheduler.server.master.service.IsolationMetadataManager;
 import org.apache.dolphinscheduler.service.alert.ProcessAlertManager;
 import org.apache.dolphinscheduler.service.bean.SpringApplicationContext;
+import org.apache.dolphinscheduler.service.expand.CuringParamsService;
 import org.apache.dolphinscheduler.service.process.ProcessService;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+import org.springframework.context.ApplicationContext;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -58,15 +61,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
-import org.springframework.context.ApplicationContext;
+import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_COMPLEMENT_DATA_END_DATE;
+import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_COMPLEMENT_DATA_START_DATE;
+import static org.apache.dolphinscheduler.common.Constants.CMD_PARAM_RECOVERY_START_NODE_STRING;
+import static org.apache.dolphinscheduler.common.Constants.CMD_PARAM_START_NODES;
+import static org.powermock.api.mockito.PowerMockito.mock;
 
 /**
  * test for WorkflowExecuteThread
@@ -93,7 +92,9 @@ public class WorkflowExecuteRunnableTest {
 
     private CuringParamsService curingGlobalParamsService;
 
-    private IsolationTaskDao isolationTaskDao;
+    private IsolationMetadataManager isolationMetadataManager;
+
+    private CoronationMetadataManager coronationMetadataManager;
 
     @Before
     public void init() throws Exception {
@@ -127,11 +128,12 @@ public class WorkflowExecuteRunnableTest {
         curingGlobalParamsService = mock(CuringParamsService.class);
         NettyExecutorManager nettyExecutorManager = mock(NettyExecutorManager.class);
         ProcessAlertManager processAlertManager = mock(ProcessAlertManager.class);
-        isolationTaskDao = mock(IsolationTaskDao.class);
+        isolationMetadataManager = mock(IsolationMetadataManager.class);
+        coronationMetadataManager = mock(CoronationMetadataManager.class);
         workflowExecuteThread =
                 PowerMockito.spy(new WorkflowExecuteRunnable(processInstance, processService, processInstanceDao,
                         nettyExecutorManager, processAlertManager, config, stateWheelExecuteThread,
-                        curingGlobalParamsService, isolationTaskDao));
+                        curingGlobalParamsService, isolationMetadataManager, coronationMetadataManager));
         // prepareProcess init dag
         Field dag = WorkflowExecuteRunnable.class.getDeclaredField("dag");
         dag.setAccessible(true);

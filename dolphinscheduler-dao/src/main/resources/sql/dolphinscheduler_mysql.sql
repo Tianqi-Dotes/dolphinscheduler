@@ -344,7 +344,8 @@ CREATE TABLE `t_ds_command` (
   `environment_code`          bigint(20) DEFAULT '-1' COMMENT 'environment code',
   `dry_run`                   tinyint(4) DEFAULT '0' COMMENT 'dry run flag：0 normal, 1 dry run',
   PRIMARY KEY (`id`),
-  KEY `priority_id_index` (`process_instance_priority`,`id`) USING BTREE
+  KEY `priority_id_index` (`process_instance_priority`,`id`) USING BTREE,
+  KEY `workflow_instance_id_index` (`process_instance_id`,`command_type`) USING BTREE,
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
@@ -859,6 +860,7 @@ CREATE TABLE `t_ds_task_instance` (
   `var_pool` longtext COMMENT 'var_pool',
   `task_group_id` int(11) DEFAULT NULL COMMENT 'task group id',
   `dry_run` tinyint(4) DEFAULT '0' COMMENT 'dry run flag: 0 normal, 1 dry run',
+  `runtime_context` text COMMENT 'used to store some information used in runtime',
   PRIMARY KEY (`id`),
   KEY `process_instance_id` (`process_instance_id`) USING BTREE,
   KEY `idx_code_version` (`task_code`, `task_definition_version`) USING BTREE,
@@ -1956,9 +1958,26 @@ CREATE TABLE `t_ds_isolation_task`
     `workflow_instance_name` varchar(255) NOT NULL COMMENT 'workflowInstanceName of the isolation task',
     `task_name`              varchar(255) NOT NULL COMMENT 'isolation task name',
     `task_code`              bigint       NOT NULL COMMENT 'isolation task code',
-    `status`                 tinyint(4) DEFAULT '0',
     `create_time`            timestamp NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time`            timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    KEY `workflow_instance_index` (`workflow_instance_id`) USING BTREE
+    UNIQUE KEY `workflow_instance_task__unique` (`workflow_instance_id`,`task_code`)
+) ENGINE = InnoDB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8;
+
+-- ----------------------------
+-- Table structure for t_ds_isolation_task
+-- ----------------------------
+DROP TABLE if exists `t_ds_coronation_task`;
+CREATE TABLE `t_ds_coronation_task`
+(
+    `id`                       bigint       NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+    `workflow_instance_id`     bigint       NOT NULL COMMENT 'workflowInstanceId of the isolation task',
+    `workflow_instance_name`   varchar(255) NOT NULL COMMENT 'workflowInstanceName of the isolation task',
+    `task_name`                varchar(255) NOT NULL COMMENT 'isolation task name',
+    `task_code`                bigint       NOT NULL COMMENT 'isolation task code',
+    `forbidden_upstream_tasks` text COMMENT 'The task in forbidden_upstream_tasks will be in forbidden execute list',
+    `create_time`              timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+    `update_time`              timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `workflow_instance_task__unique` (`workflow_instance_id`,`task_code`)
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8;

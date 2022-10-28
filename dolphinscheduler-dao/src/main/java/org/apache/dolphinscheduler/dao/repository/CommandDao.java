@@ -7,4 +7,6 @@ import java.util.List;
 public interface CommandDao {
 
     void batchInsertCommand(List<Command> commands);
+
+    List<Command> queryRecoveryCoronationCommandByWorkflowInstanceId(long workflowInstanceId);
 }

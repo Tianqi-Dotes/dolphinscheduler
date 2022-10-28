@@ -19,7 +19,6 @@ package org.apache.dolphinscheduler.server.master.rpc;
 
 import org.apache.dolphinscheduler.remote.NettyRemotingServer;
 import org.apache.dolphinscheduler.remote.command.CommandType;
-import org.apache.dolphinscheduler.remote.command.isolation.RefreshIsolationTaskRequest;
 import org.apache.dolphinscheduler.remote.config.NettyServerConfig;
 import org.apache.dolphinscheduler.server.log.LoggerRequestProcessor;
 import org.apache.dolphinscheduler.server.master.config.MasterConfig;
@@ -31,9 +30,8 @@ import org.apache.dolphinscheduler.server.master.processor.TaskExecuteRunningPro
 import org.apache.dolphinscheduler.server.master.processor.TaskKillResponseProcessor;
 import org.apache.dolphinscheduler.server.master.processor.WorkflowExecutingDataRequestProcessor;
 
-import javax.annotation.PostConstruct;
-
-import org.apache.dolphinscheduler.server.master.processor.isolation.RefreshIsolationTaskProcessor;
+import org.apache.dolphinscheduler.server.master.processor.coronation.RefreshCoronationMetadataProcessor;
+import org.apache.dolphinscheduler.server.master.processor.isolation.RefreshIsolationMetadataProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,8 +74,10 @@ public class MasterRPCServer implements AutoCloseable {
     @Autowired
     private WorkflowExecutingDataRequestProcessor workflowExecutingDataRequestProcessor;
 
+    private RefreshCoronationMetadataProcessor refreshCoronationMetadataProcessor;
+
     @Autowired
-    private RefreshIsolationTaskProcessor refreshIsolationTaskProcessor;
+    private RefreshIsolationMetadataProcessor refreshIsolationTaskProcessor;
 
     public void start() {
         logger.info("Starting Master RPC Server...");
@@ -101,8 +101,10 @@ public class MasterRPCServer implements AutoCloseable {
         this.nettyRemotingServer.registerProcessor(CommandType.VIEW_WHOLE_LOG_REQUEST, loggerRequestProcessor);
         this.nettyRemotingServer.registerProcessor(CommandType.REMOVE_TAK_LOG_REQUEST, loggerRequestProcessor);
 
-        this.nettyRemotingServer.registerProcessor(CommandType.REFRESH_ISOLATION_REQUEST,
+        this.nettyRemotingServer.registerProcessor(CommandType.REFRESH_ISOLATION_METADATA_REQUEST,
                 refreshIsolationTaskProcessor);
+        this.nettyRemotingServer.registerProcessor(CommandType.REFRESH_CORONATION_METADATA_REQUEST,
+                refreshCoronationMetadataProcessor);
 
         this.nettyRemotingServer.start();
         logger.info("Started Master RPC Server...");

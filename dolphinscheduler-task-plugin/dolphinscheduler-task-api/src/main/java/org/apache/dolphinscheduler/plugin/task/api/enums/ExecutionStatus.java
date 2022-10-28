@@ -67,6 +67,8 @@ public enum ExecutionStatus {
     DISPATCH(17, "dispatch"),
     PAUSE_BY_ISOLATION(18, "paused by isolation"),
     KILL_BY_ISOLATION(19, "killed by isolation"),
+
+    PAUSE_BY_CORONATION(20, "paused by coronation"),
     ;
 
     ExecutionStatus(int code, String descp) {
@@ -120,7 +122,7 @@ public enum ExecutionStatus {
      */
     public boolean typeIsFinished() {
         return typeIsSuccess() || typeIsFailure() || typeIsCancel() || typeIsPause() || typeIsPauseByIsolation()
-                || typeIsStop() || typeIsBlock();
+                || typeIsStop() || typeIsBlock() || typeIsPauseByCoronation();
     }
 
     public boolean typeIsReady() {
@@ -147,6 +149,10 @@ public enum ExecutionStatus {
 
     public boolean typeIsPauseByIsolation() {
         return this == PAUSE_BY_ISOLATION;
+    }
+
+    public boolean typeIsPauseByCoronation() {
+        return this == PAUSE_BY_CORONATION;
     }
 
     public boolean typeIsKilledByIsolation() {

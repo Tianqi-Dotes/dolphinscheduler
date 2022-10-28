@@ -242,7 +242,8 @@ public class TaskInstanceServiceImpl extends BaseServiceImpl implements TaskInst
                     .entrySet()) {
                 Integer workflowInstanceId = processInstanceId2TaskInstanceIds.getKey();
                 List<Integer> needToCleanStateTaskInstanceIds = processInstanceId2TaskInstanceIds.getValue();
-                ProcessInstance workflowInstance = processInstanceDao.queryProcessInstanceById(workflowInstanceId);
+                ProcessInstance workflowInstance = processInstanceDao.queryProcessInstanceById(workflowInstanceId)
+                        .orElseThrow(() -> new ServiceException(Status.PROCESS_INSTANCE_NOT_EXIST));
                 workflowInstanceChecker.checkCanCleanTaskInstanceState(loginUser, workflowInstance);
                 Command command = commandTransformer.transformToCleanTaskInstanceStateCommand(workflowInstance,
                         needToCleanStateTaskInstanceIds);

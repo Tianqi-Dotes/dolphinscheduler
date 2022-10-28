@@ -8,12 +8,12 @@ import org.apache.dolphinscheduler.api.exceptions.ApiException;
 import org.apache.dolphinscheduler.api.service.IsolationTaskService;
 import org.apache.dolphinscheduler.api.utils.PageInfo;
 import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.api.vo.IsolationTaskListingVO;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.dao.entity.IsolationTask;
 import org.apache.dolphinscheduler.dao.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,13 +21,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import springfox.documentation.annotations.ApiIgnore;
 
-import javax.validation.Valid;
-
-import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_DELETE_ERROR;
 import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_LISTING_ERROR;
 import static org.apache.dolphinscheduler.api.enums.Status.ISOLATION_TASK_SUBMIT_ERROR;
 
@@ -50,17 +48,6 @@ public class IsolationTaskController {
         return Result.success(null);
     }
 
-    @PutMapping(value = "/online/{id}")
-    @ResponseStatus(HttpStatus.OK)
-    @ApiException(ISOLATION_TASK_SUBMIT_ERROR)
-    @AccessLogAnnotation(ignoreRequestArgs = "loginUser")
-    public Result<Void> onlineIsolationTask(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                            @PathVariable long projectCode,
-                                            @PathVariable(name = "id") long isolationId) {
-        isolationTaskService.onlineTaskIsolation(loginUser, projectCode, isolationId);
-        return Result.success(null);
-    }
-
     @PutMapping(value = "/cancel/{id}")
     @ResponseStatus(HttpStatus.OK)
     @ApiException(ISOLATION_TASK_SUBMIT_ERROR)
@@ -76,21 +63,15 @@ public class IsolationTaskController {
     @ResponseStatus(HttpStatus.OK)
     @ApiException(ISOLATION_TASK_LISTING_ERROR)
     @AccessLogAnnotation(ignoreRequestArgs = "loginUser")
-    public Result<PageInfo<IsolationTask>> listingIsolationTask(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                                                @PathVariable long projectCode,
-                                                                @RequestBody @Valid IsolationTaskListingRequest request) {
+    public Result<PageInfo<IsolationTaskListingVO>> listingIsolationTask(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                                         @PathVariable long projectCode,
+                                                                         @RequestParam(required = false) String workflowInstanceName,
+                                                                         @RequestParam(required = false) String taskName,
+                                                                         @RequestParam Integer pageNo,
+                                                                         @RequestParam Integer pageSize) {
+        IsolationTaskListingRequest request =
+                new IsolationTaskListingRequest(workflowInstanceName, taskName, pageNo, pageSize);
         return Result.success(isolationTaskService.listingTaskIsolation(loginUser, projectCode, request));
-    }
-
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
-    @ApiException(ISOLATION_TASK_DELETE_ERROR)
-    @AccessLogAnnotation(ignoreRequestArgs = "loginUser")
-    public Result<Void> deleteIsolationTask(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                            @PathVariable long projectCode,
-                                            @PathVariable long id) {
-        isolationTaskService.deleteTaskIsolation(loginUser, projectCode, id);
-        return Result.success(null);
     }
 
 }

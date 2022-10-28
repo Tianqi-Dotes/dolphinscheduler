@@ -8,6 +8,7 @@ import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.dao.exception.RepositoryException;
 import org.apache.dolphinscheduler.dao.mapper.TaskInstanceMapper;
 import org.apache.dolphinscheduler.dao.repository.TaskInstanceDao;
+import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -32,6 +33,13 @@ public class TaskInstanceDaoImpl implements TaskInstanceDao {
     @Override
     public List<TaskInstance> queryValidatedTaskInstanceByWorkflowInstanceId(Integer workflowInstanceId) {
         return taskInstanceMapper.findValidTaskListByProcessId(workflowInstanceId, Flag.YES);
+    }
+
+    @Override
+    public List<TaskInstance> queryValidatedTaskInstanceByWorkflowInstanceIdAndStatus(@NonNull Integer workflowInstanceId,
+                                                                                      @NonNull ExecutionStatus status) {
+        return taskInstanceMapper.findValidTaskListByProcessIdAndTaskStatus(workflowInstanceId, status.getCode(),
+                Flag.YES.getCode());
     }
 
     @Override

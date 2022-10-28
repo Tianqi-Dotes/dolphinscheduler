@@ -276,6 +276,8 @@ public class TaskInstance implements Serializable {
      */
     private int taskGroupId;
 
+    private String runtimeContext;
+
     public void init(String host, Date startTime, String executePath) {
         this.host = host;
         this.startTime = startTime;
@@ -757,5 +759,13 @@ public class TaskInstance implements Serializable {
 
     public void setTaskGroupPriority(int taskGroupPriority) {
         this.taskGroupPriority = taskGroupPriority;
+    }
+
+    public String getRuntimeContext() {
+        return runtimeContext;
+    }
+
+    public void setRuntimeContext(String runtimeContext) {
+        this.runtimeContext = runtimeContext;
     }
 }

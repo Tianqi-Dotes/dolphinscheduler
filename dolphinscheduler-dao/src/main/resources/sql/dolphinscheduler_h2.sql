@@ -864,6 +864,7 @@ CREATE TABLE t_ds_task_instance
     task_group_id           int(11) DEFAULT NULL,
     var_pool                longtext,
     dry_run                 int NULL DEFAULT 0,
+    runtime_context         text,
     PRIMARY KEY (id),
     FOREIGN KEY (process_instance_id) REFERENCES t_ds_process_instance (id) ON DELETE CASCADE
 );
@@ -1989,8 +1990,24 @@ CREATE TABLE `t_ds_isolation_task`
     `workflow_instance_name` varchar(255) NOT NULL COMMENT 'workflowInstanceName of the isolation task',
     `task_name`              varchar(255) NOT NULL COMMENT 'isolation task name',
     `task_code`              bigint       NOT NULL COMMENT 'isolation task code',
-    `status`                 tinyint(4) DEFAULT '0',
     `create_time`            timestamp NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time`            timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+);
+
+-- ----------------------------
+-- Table structure for t_ds_isolation_task
+-- ----------------------------
+DROP TABLE if exists `t_ds_coronation_task`;
+CREATE TABLE `t_ds_coronation_task`
+(
+    `id`                       bigint       NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+    `workflow_instance_id`     bigint       NOT NULL COMMENT 'workflowInstanceId of the isolation task',
+    `workflow_instance_name`   varchar(255) NOT NULL COMMENT 'workflowInstanceName of the isolation task',
+    `task_name`                varchar(255) NOT NULL COMMENT 'isolation task name',
+    `task_code`                bigint       NOT NULL COMMENT 'isolation task code',
+    `forbidden_upstream_tasks` text COMMENT 'The task in forbidden_upstream_tasks will be in forbidden execute list',
+    `create_time`              timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+    `update_time`              timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
 );

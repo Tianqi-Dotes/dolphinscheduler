@@ -550,6 +550,19 @@ public enum Status {
     ISOLATION_TASK_DELETE_ERROR(1500500, "Delete isolation task error", "删除隔离任务异常"),
     ISOLATION_TASK_DELETE_ERROR_IS_NOT_OFFLINE(1500501, "Delete isolation task error, the task status is not offline",
             "删除隔离任务异常，该隔离任务尚未下线"),
+
+    CORONATION_TASK_PARSE_ERROR(1600000, "Coronation task parse error", "解析加冕任务异常"),
+    CORONATION_TASK_NOT_EXIST(1600001, "Coronation task not exist", "加冕任务不存在"),
+    CORONATION_TASK_PARSE_ERROR_TASK_NODE_NAME_IS_NOT_VALIDATED(1600002,
+            "Coronation task parse error, taskNode name is not validated", "解析加冕任务异常， 任务名不正确"),
+    CORONATION_TASK_SUBMIT_ERROR(1600100, "Coronation task submit error", "提交加冕任务异常"),
+    CORONATION_TASK_ONLINE_ERROR(1600200, "Coronation task online error", "上线加冕任务异常"),
+    CORONATION_TASK_CANCEL_ERROR(1600300, "Coronation task cancel error", "取消加冕任务异常"),
+    CORONATION_TASK_LISTING_ERROR(1600400, "Coronation task listing error", "查询加冕任务异常"),
+    CORONATION_TASK_DELETE_ERROR(1600500, "Coronation task delete error", "删除加冕任务异常"),
+
+    PROCESS_INSTANCE_NOT_BELONG_TO_CURRENT_PROJECT(1700000,
+            "The workflow instance doesn't belong to the current project", "工作流实例不属于当前项目"),
             ;
 
     private final int code;

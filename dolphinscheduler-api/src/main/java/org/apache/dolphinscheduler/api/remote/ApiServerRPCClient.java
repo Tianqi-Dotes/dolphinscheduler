@@ -27,6 +27,11 @@ public class ApiServerRPCClient {
         sendSyncCommand(host, rpcCommand, DEFAULT_TIME_OUT_MILLS);
     }
 
+    public void send(@NonNull Host host,
+                     @NonNull Command rpcCommand) throws RemotingException {
+        client.send(host, rpcCommand);
+    }
+
     public void sendSyncCommand(@NonNull Host host,
                                 @NonNull Command rpcCommand,
                                 long timeoutMills) throws RemotingException, InterruptedException {

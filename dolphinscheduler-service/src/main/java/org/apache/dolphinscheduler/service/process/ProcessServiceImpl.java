@@ -1048,10 +1048,9 @@ public class ProcessServiceImpl implements ProcessService {
                 processInstance.setCommandParam(JSONUtils.toJsonString(cmdParam));
                 break;
             case RECOVERY_FROM_ISOLATION_TASKS:
-                Map<String, String> commandParamMap = JSONUtils.toMap(processInstance.getCommandParam());
                 List<Integer> recoveryPausedIsolationIds =
                         JSONUtils.parseObject(
-                                commandParamMap.get(Constants.CMD_PARAM_RECOVERY_PAUSED_ISOLATED_TASK_IDS),
+                                cmdParam.get(Constants.CMD_PARAM_RECOVERY_PAUSED_ISOLATED_TASK_IDS),
                                 new TypeReference<ArrayList<Integer>>() {
                                 });
                 if (CollectionUtils.isNotEmpty(recoveryPausedIsolationIds)) {
@@ -1059,11 +1058,23 @@ public class ProcessServiceImpl implements ProcessService {
                 }
                 List<Integer> recoveryKilledIsolationIds =
                         JSONUtils.parseObject(
-                                commandParamMap.get(Constants.CMD_PARAM_RECOVERY_KILLED_ISOLATED_TASK_IDS),
+                                cmdParam.get(Constants.CMD_PARAM_RECOVERY_KILLED_ISOLATED_TASK_IDS),
                                 new TypeReference<ArrayList<Integer>>() {
                                 });
                 if (CollectionUtils.isNotEmpty(recoveryKilledIsolationIds)) {
                     recoveryKilledIsolationIds.forEach(id -> initTaskInstance(findTaskInstanceById(id)));
+                }
+                processInstance.setRunTimes(runTime + 1);
+                processInstance.setCommandParam(JSONUtils.toJsonString(cmdParam));
+                break;
+            case RECOVERY_FROM_CORONATION_PAUSE_TASKS:
+                List<Integer> pauseByCoronationIds =
+                        JSONUtils.parseObject(cmdParam.get(Constants.CMD_PARAM_RECOVERY_PAUSED_BY_CORONATION_TASK_IDS),
+                                new TypeReference<ArrayList<Integer>>() {
+                                });
+                for (Integer taskId : pauseByCoronationIds) {
+                    // initialize the pause state
+                    initTaskInstance(this.findTaskInstanceById(taskId));
                 }
                 processInstance.setRunTimes(runTime + 1);
                 processInstance.setCommandParam(JSONUtils.toJsonString(cmdParam));

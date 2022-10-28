@@ -57,6 +57,8 @@ public enum CommandType {
 
     RECOVERY_FROM_ISOLATION_TASKS(13, "recovery from isolation tasks"),
 
+    RECOVERY_FROM_CORONATION_PAUSE_TASKS(14, "recovery from coronation pause tasks"),
+
     ;
 
     CommandType(int code, String descp) {

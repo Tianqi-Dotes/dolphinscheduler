@@ -78,4 +78,10 @@
         </foreach>
     </insert>
 
+    <delete id="deleteByWorkflowInstanceId">
+        delete
+        from t_ds_isolation_task
+        where workflow_instance_id = #{workflowInstanceId}
+    </delete>
+
 </mapper>

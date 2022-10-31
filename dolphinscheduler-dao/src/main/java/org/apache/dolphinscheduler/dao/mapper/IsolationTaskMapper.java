@@ -23,4 +23,5 @@ public interface IsolationTaskMapper extends BaseMapper<IsolationTask> {
 
     List<IsolationTask> queryAllIsolationTask();
 
+    int deleteByWorkflowInstanceId(@Param("workflowInstanceId") Integer workflowInstanceId);
 }

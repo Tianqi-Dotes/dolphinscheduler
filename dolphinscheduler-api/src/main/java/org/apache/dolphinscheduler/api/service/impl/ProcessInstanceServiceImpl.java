@@ -61,6 +61,8 @@ import org.apache.dolphinscheduler.dao.mapper.TaskDefinitionLogMapper;
 import org.apache.dolphinscheduler.dao.mapper.TaskDefinitionMapper;
 import org.apache.dolphinscheduler.dao.mapper.TaskInstanceMapper;
 import org.apache.dolphinscheduler.dao.mapper.TenantMapper;
+import org.apache.dolphinscheduler.dao.repository.CoronationTaskDao;
+import org.apache.dolphinscheduler.dao.repository.IsolationTaskDao;
 import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
 import org.apache.dolphinscheduler.plugin.task.api.enums.DependResult;
 import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
@@ -163,6 +165,12 @@ public class ProcessInstanceServiceImpl extends BaseServiceImpl implements Proce
 
     @Autowired
     private CuringParamsService curingGlobalParamsService;
+
+    @Autowired
+    private IsolationTaskDao isolationTaskDao;
+
+    @Autowired
+    private CoronationTaskDao coronationTaskDao;
 
     /**
      * return top n SUCCESS process instance order by running time which started between startTime and endTime
@@ -655,6 +663,10 @@ public class ProcessInstanceServiceImpl extends BaseServiceImpl implements Proce
         processService.deleteAllSubWorkProcessByParentId(processInstanceId);
         processService.deleteWorkProcessMapByParentId(processInstanceId);
         processService.deleteWorkTaskInstanceByProcessInstanceId(processInstanceId);
+
+        // todo: send refresh RPC request
+        isolationTaskDao.deleteByWorkflowInstanceId(processInstanceId);
+        coronationTaskDao.deleteByWorkflowInstanceId(processInstanceId);
 
         Map<String, Object> result = new HashMap<>();
         if (delete > 0) {

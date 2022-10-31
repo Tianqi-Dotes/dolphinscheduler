@@ -9,6 +9,7 @@ import org.apache.dolphinscheduler.api.exceptions.ApiException;
 import org.apache.dolphinscheduler.api.service.CoronationTaskService;
 import org.apache.dolphinscheduler.api.utils.PageInfo;
 import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.api.vo.CoronationTaskExcelImportVO;
 import org.apache.dolphinscheduler.api.vo.CoronationTaskParseVO;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.dao.dto.CoronationTaskDTO;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import springfox.documentation.annotations.ApiIgnore;
@@ -83,7 +85,16 @@ public class CoronationTaskController {
     @AccessLogAnnotation(ignoreRequestArgs = "loginUser")
     public Result<PageInfo<CoronationTaskDTO>> listingCoronationTasks(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                                                       @PathVariable("projectCode") long projectCode,
-                                                                      @RequestBody CoronationTaskListingRequest request) {
+                                                                      @RequestParam(required = false) String workflowInstanceName,
+                                                                      @RequestParam(required = false) String taskName,
+                                                                      @RequestParam Integer pageNo,
+                                                                      @RequestParam Integer pageSize) {
+        CoronationTaskListingRequest request = CoronationTaskListingRequest.builder()
+                .workflowInstanceName(workflowInstanceName)
+                .taskName(taskName)
+                .pageNo(pageNo)
+                .pageSize(pageSize)
+                .build();
         return Result.success(coronationTaskService.listingCoronationTasks(loginUser, projectCode, request));
 
     }

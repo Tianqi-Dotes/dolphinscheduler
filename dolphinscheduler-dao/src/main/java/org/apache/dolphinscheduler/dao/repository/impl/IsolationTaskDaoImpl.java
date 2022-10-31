@@ -71,4 +71,9 @@ public class IsolationTaskDaoImpl implements IsolationTaskDao {
         }
         isolationTaskMapper.batchInsert(isolationTasks);
     }
+
+    @Override
+    public int deleteByWorkflowInstanceId(Integer workflowInstanceId) {
+        return isolationTaskMapper.deleteByWorkflowInstanceId(workflowInstanceId);
+    }
 }

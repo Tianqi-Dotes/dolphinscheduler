@@ -26,7 +26,7 @@ public class CommandDaoImpl implements CommandDao {
 
     @Override
     public List<Command> queryRecoveryCoronationCommandByWorkflowInstanceId(long workflowInstanceId) {
-        return commandMapper.queryRecoveryCoronationCommandByWorkflowInstanceId(workflowInstanceId,
+        return commandMapper.queryCommandByWorkflowInstanceIdAndCommandType(workflowInstanceId,
                 CommandType.RECOVERY_FROM_CORONATION_PAUSE_TASKS.getCode());
     }
 }

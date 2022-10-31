@@ -1655,6 +1655,15 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                 // No task need to submit, and exist isolation task, the workflow instance need to be PAUSE_BY_ISOLATION
                 return ExecutionStatus.PAUSE_BY_ISOLATION;
             }
+            if (coronationMetadataManager.isInCoronationMode()) {
+                Optional<TaskInstance> pauseByCoronationTaskInstance = taskInstanceMap.values().stream()
+                        .filter(taskInstance -> taskInstance.getState().typeIsPauseByCoronation())
+                        .findAny();
+                if (pauseByCoronationTaskInstance.isPresent()) {
+                    return ExecutionStatus.PAUSE_BY_CORONATION;
+                }
+            }
+
             // if the waiting queue is empty and the status is in progress, then success
             return ExecutionStatus.SUCCESS;
         }
@@ -1999,7 +2008,11 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                     coronattedTaskCodeToTimesMap.getOrDefault(taskCode, 0) + 1);
             Integer parentNodeInstanceId = validTaskMap.get(parentNodeCode);
             if (parentNodeInstanceId != null) {
-                TaskInstance taskInstance = activeTaskProcessorMaps.get(parentNodeInstanceId).taskInstance();
+                ITaskProcessor iTaskProcessor = activeTaskProcessorMaps.get(parentNodeInstanceId);
+                if (iTaskProcessor == null) {
+                    continue;
+                }
+                TaskInstance taskInstance = iTaskProcessor.taskInstance();
                 if (taskInstance.getState().typeIsPauseByCoronation()) {
                     // resubmit the task to standbylist, this task will be resubmit again.
                     taskInstance.setState(ExecutionStatus.SUBMITTED_SUCCESS);

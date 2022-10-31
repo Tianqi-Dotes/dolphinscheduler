@@ -94,10 +94,10 @@ public class CoronationMetadataManager {
         if (coronationTaskInMemory.isEmpty()) {
             if (coronationMode == CoronationMode.IN_CORONATION) {
                 log.info("There is not coronation tasks, will begin to close coronation mode...");
-                closeCoronation();
                 coronationMode = CoronationMode.NOT_IN_CORONATION;
                 log.info("Close coronation mode success...");
             }
+            insertRecoveryCoronationCommandIfNeeded();
         } else {
             addCoronationTasks(addCoronationTasks);
             cancelCoronationTasks(deleteCoronationTasks);
@@ -107,7 +107,7 @@ public class CoronationMetadataManager {
             }
         }
         stopWatch.stop();
-        log.info("Refresh coronation task from DB finished, cost: {}", stopWatch.getTime());
+        log.info("Refresh coronation task from DB finished, cost: {} ms", stopWatch.getTime());
     }
 
     public boolean isCoronationTask(int workflowInstanceId, long taskCode) {
@@ -135,7 +135,7 @@ public class CoronationMetadataManager {
                 RefreshCoronationMetadataRequest request = new RefreshCoronationMetadataRequest();
                 for (Server master : masters) {
                     try {
-                        masterRPCClient.sendSyncCommand(new Host(master.getHost(), master.getPort()),
+                        masterRPCClient.sendCommand(new Host(master.getHost(), master.getPort()),
                                 request.convert2Command());
                     } catch (Exception e) {
                         log.error(
@@ -151,19 +151,19 @@ public class CoronationMetadataManager {
         }
     }
 
-    private void closeCoronation() {
+    private void insertRecoveryCoronationCommandIfNeeded() {
         // The current server is in coronation mode, need to close coronation.
         // Need to acquire a lock to guarantee there is only one master recovery the pause_by_coronation workflow
+        // block to acquire the master lock
         try {
-            // block to acquire the master lock
             if (!registryClient.getLock(NodeType.MASTER.getRegistryPath())) {
-                log.error("Cannot acquire the master lock: {} to close coronation", NodeType.MASTER.getRegistryPath());
+                log.warn("Cannot acquire the master lock: {} to close coronation", NodeType.MASTER.getRegistryPath());
                 return;
             }
             // find the all instance that need to be recovery
             // create recovery command
             List<Command> needToInsertCommand =
-                    processInstanceDao.queryProcessInstanceByStatus(ExecutionStatus.PAUSE_BY_ISOLATION)
+                    processInstanceDao.queryProcessInstanceByStatus(ExecutionStatus.PAUSE_BY_CORONATION)
                             .stream()
                             .filter(processInstance -> {
                                 List<Command> commands = commandDao

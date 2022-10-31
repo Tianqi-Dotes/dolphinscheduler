@@ -25,4 +25,5 @@ public interface CoronationTaskDao {
 
     int queryAllCoronationTaskNumber();
 
+    int deleteByWorkflowInstanceId(Integer processInstanceId);
 }

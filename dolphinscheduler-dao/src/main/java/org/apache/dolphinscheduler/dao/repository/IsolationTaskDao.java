@@ -30,4 +30,6 @@ public interface IsolationTaskDao {
     void insert(IsolationTask isolationTaskDTO);
 
     void batchInsert(List<IsolationTask> isolationTasks);
+
+    int deleteByWorkflowInstanceId(Integer processInstanceId);
 }

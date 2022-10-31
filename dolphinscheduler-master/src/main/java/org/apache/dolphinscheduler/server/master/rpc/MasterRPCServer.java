@@ -74,6 +74,7 @@ public class MasterRPCServer implements AutoCloseable {
     @Autowired
     private WorkflowExecutingDataRequestProcessor workflowExecutingDataRequestProcessor;
 
+    @Autowired
     private RefreshCoronationMetadataProcessor refreshCoronationMetadataProcessor;
 
     @Autowired

@@ -42,9 +42,9 @@
     <select id="queryTaskByProcessIdAndState" resultType="java.lang.Integer">
         select id
         from t_ds_task_instance
-        WHERE  process_instance_id = #{processInstanceId}
-        and state = #{state}
-        and flag = 1
+        WHERE process_instance_id = #{processInstanceId}
+          and state = #{state}
+          and flag = 1
     </select>
     <select id="findValidTaskListByProcessId" resultType="org.apache.dolphinscheduler.dao.entity.TaskInstance">
         select
@@ -53,6 +53,15 @@
         WHERE process_instance_id = #{processInstanceId}
         and flag = #{flag}
         order by start_time desc
+    </select>
+    <select id="findValidTaskListByProcessIdAndTaskStatus"
+            resultType="org.apache.dolphinscheduler.dao.entity.TaskInstance">
+        select
+        <include refid="baseSql"/>
+        from t_ds_task_instance
+        WHERE process_instance_id = #{processInstanceId}
+        and state = #{status}
+        and flag = #{flag}
     </select>
     <select id="queryByHostAndStatus" resultType="org.apache.dolphinscheduler.dao.entity.TaskInstance">
         select

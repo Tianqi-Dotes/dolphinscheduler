@@ -62,4 +62,9 @@ public class CoronationTaskDaoImpl implements CoronationTaskDao {
     public int queryAllCoronationTaskNumber() {
         return coronationTaskMapper.queryAllCoronationTaskNumber();
     }
+
+    @Override
+    public int deleteByWorkflowInstanceId(Integer workflowInstanceId) {
+        return coronationTaskMapper.deleteByWorkflowInstanceId(workflowInstanceId);
+    }
 }

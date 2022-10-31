@@ -18,7 +18,7 @@ public class RefreshCoronationMetadataProcessor implements NettyRequestProcessor
 
     @Override
     public void process(Channel channel, Command command) {
-        if (command.getType() != CommandType.REFRESH_ISOLATION_METADATA_REQUEST) {
+        if (command.getType() != CommandType.REFRESH_CORONATION_METADATA_REQUEST) {
             throw new IllegalArgumentException(String.format("The current rpc command : %s is invalidated", command));
         }
         coronationMetadataManager.refreshCoronationTaskMetadata();

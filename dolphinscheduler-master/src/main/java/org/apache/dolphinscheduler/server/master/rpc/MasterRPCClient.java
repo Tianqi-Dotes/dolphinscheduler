@@ -33,4 +33,8 @@ public class MasterRPCClient {
         client.sendSync(host, rpcCommand, timeoutMills);
     }
 
+    public void sendCommand(@NonNull Host host, @NonNull Command rpcCommand) throws RemotingException {
+        client.send(host, rpcCommand);
+    }
+
 }

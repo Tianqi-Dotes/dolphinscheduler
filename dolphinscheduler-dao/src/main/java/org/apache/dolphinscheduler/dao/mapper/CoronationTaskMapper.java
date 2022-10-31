@@ -21,4 +21,5 @@ public interface CoronationTaskMapper extends BaseMapper<CoronationTask> {
 
     int queryAllCoronationTaskNumber();
 
+    int deleteByWorkflowInstanceId(@Param("workflowInstanceId") Integer workflowInstanceId);
 }

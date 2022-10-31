@@ -50,14 +50,15 @@ public interface CommandMapper extends BaseMapper<Command> {
 
     /**
      * query command page by slot
+     *
      * @return command list
      */
     List<Command> queryCommandPageBySlot(@Param("limit") int limit, @Param("offset") int offset,
                                          @Param("masterCount") int masterCount,
                                          @Param("thisMasterSlot") int thisMasterSlot);
 
-    void batchInsertCommand(List<Command> commands);
+    void batchInsertCommand(@Param("commands") List<Command> commands);
 
-    List<Command> queryRecoveryCoronationCommandByWorkflowInstanceId(@Param("workflowInstanceId") long workflowInstanceId,
-                                                                     @Param("command_type") int commandType);
+    List<Command> queryCommandByWorkflowInstanceIdAndCommandType(@Param("workflowInstanceId") long workflowInstanceId,
+                                                                 @Param("commandType") int commandType);
 }

@@ -31,6 +31,7 @@ import org.apache.dolphinscheduler.dao.entity.Project;
 import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.dao.repository.CoronationTaskDao;
 import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
+import org.apache.dolphinscheduler.dao.utils.DagHelper;
 import org.apache.dolphinscheduler.remote.command.Command;
 import org.apache.dolphinscheduler.remote.command.coronation.RefreshCoronationMetadataRequest;
 import org.apache.dolphinscheduler.remote.exceptions.RemotingException;
@@ -89,7 +90,7 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
                         throw new ServiceException(Status.CORONATION_TASK_PARSE_ERROR_TASK_NODE_NAME_IS_NOT_VALIDATED);
                     }
                     List<TaskSimpleInfoDTO> previousTaskNodeDTO =
-                            workflowDAG.getPreviousNodes(Long.toString(vo.getTaskCode()))
+                            DagHelper.getAllPreNodes(Long.toString(vo.getTaskCode()), workflowDAG)
                                     .stream()
                                     .map(previousNodeCode -> {
                                         TaskNode node = workflowDAG.getNode(previousNodeCode);
@@ -126,7 +127,7 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
 
             List<CoronationTask> coronationTasks = vos.stream()
                     .map(vo -> {
-                        Set<String> previousNodes = workflowDAG.getPreviousNodes(vo.getTaskCode().toString());
+                        Set<String> previousNodes = DagHelper.getAllPreNodes(vo.getTaskCode().toString(), workflowDAG);
                         Set<String> selectNodes = vo.getUpstreamTasks()
                                 .stream()
                                 .map(taskNode -> Long.toString(taskNode.getTaskCode()))

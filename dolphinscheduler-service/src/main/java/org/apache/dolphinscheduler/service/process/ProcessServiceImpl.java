@@ -1633,7 +1633,8 @@ public class ProcessServiceImpl implements ProcessService {
                 || state == ExecutionStatus.DELAY_EXECUTION
                 || state == ExecutionStatus.KILL
                 || state == ExecutionStatus.DISPATCH
-                || state == ExecutionStatus.PAUSE_BY_ISOLATION) {
+                || state == ExecutionStatus.PAUSE_BY_ISOLATION
+                || state == ExecutionStatus.PAUSE_BY_CORONATION) {
             return state;
         }
         // return pasue /stop if process instance state is ready pause / stop

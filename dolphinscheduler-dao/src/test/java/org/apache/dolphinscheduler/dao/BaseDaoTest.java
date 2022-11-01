@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = DaoConfiguration.class)
+@SpringBootTest(classes = DaoConfiguration.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @SpringBootApplication(scanBasePackageClasses = DaoConfiguration.class)
 @Transactional
 @Rollback

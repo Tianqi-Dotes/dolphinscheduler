@@ -36,7 +36,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Ignore
 @ActiveProfiles(ProfileType.H2)
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = ApiApplicationServer.class)
+@SpringBootTest(classes = ApiApplicationServer.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
         "security.authentication.type=LDAP",
         "security.authentication.ldap.user.admin=read-only-admin",

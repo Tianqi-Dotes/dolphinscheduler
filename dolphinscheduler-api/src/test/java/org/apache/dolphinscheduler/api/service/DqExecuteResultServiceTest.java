@@ -58,7 +58,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.Silent.class)
-@SpringBootTest(classes = ApiApplicationServer.class)
+@SpringBootTest(classes = ApiApplicationServer.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class DqExecuteResultServiceTest {
 
     private static final Logger logger = LoggerFactory.getLogger(DqExecuteResultServiceTest.class);

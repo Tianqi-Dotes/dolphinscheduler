@@ -52,7 +52,7 @@ import static org.mockito.ArgumentMatchers.eq;
 
 @ActiveProfiles(value = {ProfileType.H2})
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = ApiApplicationServer.class)
+@SpringBootTest(classes = ApiApplicationServer.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Transactional
 @Rollback
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)

@@ -47,7 +47,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ActiveProfiles(value = {ProfileType.H2})
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest(classes = ApiApplicationServer.class)
+@SpringBootTest(classes = ApiApplicationServer.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class WorkerGroupServiceTest {
 
     @MockBean(name = "registryClient")

@@ -46,6 +46,8 @@ public class ApiServerHeartbeatTask extends BaseHeartBeatTask<ApiServerHeartBeat
                 .reportTime(System.currentTimeMillis())
                 .cpuUsage(OSUtils.cpuUsage())
                 .memoryUsage(OSUtils.memoryUsage())
+                .loadAverage(OSUtils.loadAverage())
+                .availablePhysicalMemorySize(OSUtils.availablePhysicalMemorySize())
                 .apiServerConfigProperty(apiServerConfigProperty)
                 .build();
     }

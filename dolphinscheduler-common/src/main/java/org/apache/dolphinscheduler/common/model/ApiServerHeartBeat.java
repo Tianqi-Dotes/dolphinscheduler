@@ -16,6 +16,8 @@ public class ApiServerHeartBeat implements HeartBeat {
     private long reportTime;
     private double cpuUsage;
     private double memoryUsage;
+    private double loadAverage;
+    private double availablePhysicalMemorySize;
 
     private ApiServerConfigProperty apiServerConfigProperty;
 

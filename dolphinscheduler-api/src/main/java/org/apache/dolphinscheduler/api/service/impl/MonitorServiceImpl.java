@@ -110,8 +110,8 @@ public class MonitorServiceImpl extends BaseServiceImpl implements MonitorServic
     @Override
     public Map<String, Object> queryAlertServer() {
         Map<String, Object> result = new HashMap<>();
-        List<Server> alertServer = getServerListFromRegistry(NodeType.ALERT_SERVER);
-        result.put(Constants.DATA_LIST, alertServer);
+        List<Server> alertServers = getServerListFromRegistry(NodeType.ALERT_SERVER);
+        result.put(Constants.DATA_LIST, alertServers);
         putMsg(result, Status.SUCCESS);
         return result;
     }
@@ -119,8 +119,8 @@ public class MonitorServiceImpl extends BaseServiceImpl implements MonitorServic
     @Override
     public Map<String, Object> queryApiServer() {
         Map<String, Object> result = new HashMap<>();
-        List<Server> alertServer = getServerListFromRegistry(NodeType.API_SERVER);
-        result.put(Constants.DATA_LIST, alertServer);
+        List<Server> apiServers = getServerListFromRegistry(NodeType.API_SERVER);
+        result.put(Constants.DATA_LIST, apiServers);
         putMsg(result, Status.SUCCESS);
         return result;
     }

@@ -46,6 +46,8 @@ public class AlertHeartbeatTask extends BaseHeartBeatTask<AlertServerHeartBeat> 
                 .reportTime(System.currentTimeMillis())
                 .cpuUsage(OSUtils.cpuUsage())
                 .memoryUsage(OSUtils.memoryUsage())
+                .loadAverage(OSUtils.loadAverage())
+                .availablePhysicalMemorySize(OSUtils.availablePhysicalMemorySize())
                 .alertConfigProperty(alertConfigProperty)
                 .alertMetricsProperty(getAlertServerMetricsProperty())
                 .build();

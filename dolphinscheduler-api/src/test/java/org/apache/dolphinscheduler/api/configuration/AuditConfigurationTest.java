@@ -22,12 +22,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ActiveProfiles("audit")
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest(classes = AuditConfiguration.class)
+@SpringBootTest(classes = AuditConfiguration.class, webEnvironment = WebEnvironment.RANDOM_PORT)
 public class AuditConfigurationTest {
 
     @Autowired

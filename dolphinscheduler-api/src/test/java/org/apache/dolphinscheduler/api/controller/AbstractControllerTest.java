@@ -50,7 +50,7 @@ import java.util.Map;
  * abstract controller test
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = {ApiApplicationServer.class, DaoConfiguration.class, RegistryServer.class}, webEnvironment = WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = {ApiApplicationServer.class, DaoConfiguration.class, RegistryServer.class}, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @DirtiesContext
 public abstract class AbstractControllerTest {

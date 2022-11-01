@@ -64,7 +64,7 @@ import static org.mockito.Mockito.when;
  * task instance service test
  */
 @RunWith(MockitoJUnitRunner.Silent.class)
-@SpringBootTest(classes = ApiApplicationServer.class)
+@SpringBootTest(classes = ApiApplicationServer.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class TaskInstanceServiceTest {
 
     @InjectMocks

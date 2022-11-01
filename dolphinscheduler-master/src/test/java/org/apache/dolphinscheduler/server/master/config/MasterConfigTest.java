@@ -27,7 +27,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ActiveProfiles("master")
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest(classes = MasterConfig.class)
+@SpringBootTest(classes = MasterConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class MasterConfigTest {
 
     @Autowired

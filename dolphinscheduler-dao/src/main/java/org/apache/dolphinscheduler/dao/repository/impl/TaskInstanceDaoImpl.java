@@ -36,6 +36,15 @@ public class TaskInstanceDaoImpl implements TaskInstanceDao {
     }
 
     @Override
+    public List<TaskInstance> queryValidatedTaskInstanceByWorkflowInstanceId(List<Integer> workflowInstanceIds) {
+        if (CollectionUtils.isEmpty(workflowInstanceIds)) {
+            return Collections.emptyList();
+        }
+
+        return taskInstanceMapper.findValidTaskListByProcessIds(workflowInstanceIds, Flag.YES);
+    }
+
+    @Override
     public List<TaskInstance> queryValidatedTaskInstanceByWorkflowInstanceIdAndStatus(@NonNull Integer workflowInstanceId,
                                                                                       @NonNull ExecutionStatus status) {
         return taskInstanceMapper.findValidTaskListByProcessIdAndTaskStatus(workflowInstanceId, status.getCode(),

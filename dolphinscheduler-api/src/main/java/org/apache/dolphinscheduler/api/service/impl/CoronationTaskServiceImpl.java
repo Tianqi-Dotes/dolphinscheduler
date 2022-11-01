@@ -28,9 +28,11 @@ import org.apache.dolphinscheduler.dao.dto.TaskSimpleInfoDTO;
 import org.apache.dolphinscheduler.dao.entity.CoronationTask;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.dao.entity.Project;
+import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.dao.repository.CoronationTaskDao;
 import org.apache.dolphinscheduler.dao.repository.ProcessInstanceDao;
+import org.apache.dolphinscheduler.dao.repository.TaskInstanceDao;
 import org.apache.dolphinscheduler.dao.utils.DagHelper;
 import org.apache.dolphinscheduler.remote.command.Command;
 import org.apache.dolphinscheduler.remote.command.coronation.RefreshCoronationMetadataRequest;
@@ -41,6 +43,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -71,6 +75,9 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
     @Autowired
     private ApiServerRPCClient apiServerRPCClient;
 
+    @Autowired
+    private TaskInstanceDao taskInstanceDao;
+
     @Override
     public List<CoronationTaskParseVO> parseCoronationTask(@NonNull User loginUser,
                                                            long projectCode,
@@ -79,6 +86,7 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
         Project project = projectService.queryByCode(loginUser, projectCode);
         return coronationTasks.stream()
                 .map(vo -> {
+                    String taskCode = Long.toString(vo.getTaskCode());
                     ProcessInstance workflowInstance =
                             processInstanceDao.queryProcessInstanceById(vo.getWorkflowInstanceId())
                                     .orElseThrow(() -> new ServiceException(Status.PROCESS_INSTANCE_NOT_EXIST));
@@ -86,12 +94,13 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
                     DAG<String, TaskNode, TaskNodeRelation> workflowDAG =
                             workflowDAGService.getWorkflowDAG(workflowInstance.getProcessDefinitionCode(),
                                     workflowInstance.getProcessDefinitionVersion());
-                    if (!vo.getTaskName().equals(workflowDAG.getNode(Long.toString(vo.getTaskCode())).getName())) {
+                    if (!vo.getTaskName().equals(workflowDAG.getNode(taskCode).getName())) {
                         throw new ServiceException(Status.CORONATION_TASK_PARSE_ERROR_TASK_NODE_NAME_IS_NOT_VALIDATED);
                     }
                     List<TaskSimpleInfoDTO> previousTaskNodeDTO =
-                            DagHelper.getAllPreNodes(Long.toString(vo.getTaskCode()), workflowDAG)
+                            DagHelper.getAllPreNodes(taskCode, workflowDAG)
                                     .stream()
+                                    .filter(previousNodeCode -> !previousNodeCode.equals(taskCode))
                                     .map(previousNodeCode -> {
                                         TaskNode node = workflowDAG.getNode(previousNodeCode);
                                         return new TaskSimpleInfoDTO(node.getName(), node.getCode());
@@ -110,6 +119,7 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
     public void submitCoronationTask(@NonNull User loginUser, long projectCode,
                                      @NonNull CoronationTaskSubmitRequest request) {
         Project project = projectService.queryByCode(loginUser, projectCode);
+
         Map<Integer, List<CoronationTaskParseVO>> coronationTaskMap = request.getCoronationTasks().stream()
                 .collect(Collectors.groupingBy(CoronationTaskParseVO::getWorkflowInstanceId));
 
@@ -127,15 +137,17 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
 
             List<CoronationTask> coronationTasks = vos.stream()
                     .map(vo -> {
-                        Set<String> previousNodes = DagHelper.getAllPreNodes(vo.getTaskCode().toString(), workflowDAG);
+                        String coronationTaskCode = Long.toString(vo.getTaskCode());
+                        Set<String> previousNodes = DagHelper.getAllPreNodes(coronationTaskCode, workflowDAG);
                         Set<String> selectNodes = vo.getUpstreamTasks()
                                 .stream()
-                                .map(taskNode -> Long.toString(taskNode.getTaskCode()))
+                                .map(taskNode -> String.valueOf(taskNode.getTaskCode()))
                                 .collect(Collectors.toSet());
                         // The upstream node hasn't been selected will be set to forbidden execute
                         List<TaskSimpleInfoDTO> needToForbiddenTaskCodes =
                                 CollectionUtils.subtract(previousNodes, selectNodes)
                                         .stream()
+                                        .filter(taskCode -> !taskCode.equals(coronationTaskCode))
                                         .map(taskNode -> {
                                             TaskNode node = workflowDAG.getNode(taskNode);
                                             return new TaskSimpleInfoDTO(node.getName(), node.getCode());
@@ -151,7 +163,12 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
                     }).collect(Collectors.toList());
             needToInsertIntoDB.addAll(coronationTasks);
         }
-        coronationTaskDao.batchInsert(needToInsertIntoDB);
+        try {
+            coronationTaskDao.batchInsert(needToInsertIntoDB);
+        } catch (Exception ex) {
+            log.error("Insert coronation task into db failed", ex);
+            throw new ServiceException(Status.CORONATION_TASK_SUBMIT_ERROR);
+        }
         sendSyncCoronationTasksRequestToMaster();
     }
 
@@ -182,9 +199,35 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
                 pageNo,
                 pageSize);
 
+        List<CoronationTask> coronationTasks = iPage.getRecords();
+
+        Map<Integer, Map<Long, TaskInstance>> taskInstanceMap = taskInstanceDao
+                .queryValidatedTaskInstanceByWorkflowInstanceId(coronationTasks.stream()
+                        .map(CoronationTask::getWorkflowInstanceId).collect(Collectors.toList()))
+                .stream()
+                .collect(HashMap::new,
+                        (map, taskInstance) -> {
+                            map.computeIfAbsent(taskInstance.getProcessInstanceId(), k -> new HashMap<>())
+                                    .put(taskInstance.getTaskCode(), taskInstance);
+                        },
+                        Map::putAll);
+
+        List<CoronationTaskDTO> coronationTaskDTOs = iPage.getRecords()
+                .stream()
+                .map(coronationTask -> {
+                    CoronationTaskDTO coronationTaskDTO = new CoronationTaskDTO(coronationTask);
+                    TaskInstance taskInstance = taskInstanceMap.get(coronationTask.getWorkflowInstanceId())
+                            .get(coronationTask.getTaskCode());
+                    if (taskInstance != null) {
+                        coronationTaskDTO.setTaskStatus(taskInstance.getState());
+                    }
+                    return coronationTaskDTO;
+                }).collect(Collectors.toList());
+
         PageInfo<CoronationTaskDTO> pageInfo = new PageInfo<>(pageNo, pageSize);
         pageInfo.setTotal((int) iPage.getTotal());
-        pageInfo.setTotalList(iPage.getRecords().stream().map(CoronationTaskDTO::new).collect(Collectors.toList()));
+        // inject taskStatus
+        pageInfo.setTotalList(coronationTaskDTOs);
 
         return pageInfo;
     }
@@ -198,6 +241,7 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
         for (Server master : masters) {
             try {
                 apiServerRPCClient.send(new Host(master.getHost(), master.getPort()), command);
+                log.info("Send RefreshCoronationTask request to master: {}:{}", master.getHost(), master.getPort());
             } catch (RemotingException e) {
                 log.error("Send RefreshCoronationTask request to master error, master: {}", master, e);
             }

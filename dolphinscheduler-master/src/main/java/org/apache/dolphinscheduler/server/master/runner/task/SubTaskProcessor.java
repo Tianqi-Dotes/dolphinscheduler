@@ -208,7 +208,9 @@ public class SubTaskProcessor extends BaseTaskProcessor {
         if (subProcessInstance == null || taskInstance.getState().typeIsFinished()) {
             return true;
         }
-        // todo: isolate sub process
+        subProcessInstance.setStateWithDesc(ExecutionStatus.READY_STOP, "ready stop by isolation");
+        processInstanceDao.updateProcessInstance(subProcessInstance);
+        sendToSubProcess();
         return true;
     }
 

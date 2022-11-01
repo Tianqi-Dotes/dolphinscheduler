@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.dao.entity.CoronationTask;
+import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 
 import java.util.Date;
 import java.util.List;
@@ -27,6 +28,8 @@ public class CoronationTaskDTO {
     private String taskName;
 
     private long taskCode;
+
+    private ExecutionStatus taskStatus;
 
     private List<TaskSimpleInfoDTO> forbiddenUpstreamTasks;
 

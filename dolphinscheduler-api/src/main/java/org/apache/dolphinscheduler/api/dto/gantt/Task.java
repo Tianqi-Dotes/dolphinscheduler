@@ -17,115 +17,36 @@
 
 package org.apache.dolphinscheduler.api.dto.gantt;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.apache.dolphinscheduler.dao.dto.TaskRuntimeContext;
+
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-/**
- * Task
- */
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Task {
 
-    /**
-     * task name
-     */
     private String taskName;
 
-    /**
-     * task start date
-     */
     private List<Long> startDate = new LinkedList<>();
-    /**
-     * task end date
-     */
     private List<Long> endDate = new LinkedList<>();
 
-    /**
-     * task execution date
-     */
     private Date executionDate;
 
-    /**
-     * task iso start
-     */
+    private TaskRuntimeContext taskRuntimeContext;
+
     private Date isoStart;
 
-    /**
-     * task iso end
-     */
     private Date isoEnd;
 
-    /**
-     * task status
-     */
     private String status;
 
-    /**
-     * task duration
-     */
     private String duration;
 
-    public String getTaskName() {
-        return taskName;
-    }
-
-    public void setTaskName(String taskName) {
-        this.taskName = taskName;
-    }
-
-    public List<Long> getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(List<Long> startDate) {
-        this.startDate = startDate;
-    }
-
-    public List<Long> getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(List<Long> endDate) {
-        this.endDate = endDate;
-    }
-
-    public Date getExecutionDate() {
-        return executionDate;
-    }
-
-    public void setExecutionDate(Date executionDate) {
-        this.executionDate = executionDate;
-    }
-
-    public Date getIsoStart() {
-        return isoStart;
-    }
-
-    public void setIsoStart(Date isoStart) {
-        this.isoStart = isoStart;
-    }
-
-    public Date getIsoEnd() {
-        return isoEnd;
-    }
-
-    public void setIsoEnd(Date isoEnd) {
-        this.isoEnd = isoEnd;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getDuration() {
-        return duration;
-    }
-
-    public void setDuration(String duration) {
-        this.duration = duration;
-    }
 }

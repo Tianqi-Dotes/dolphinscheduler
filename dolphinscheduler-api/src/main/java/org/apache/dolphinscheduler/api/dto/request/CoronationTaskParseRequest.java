@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.dolphinscheduler.api.vo.CoronationTaskExcelImportVO;
 
+import javax.validation.constraints.NotEmpty;
 import java.util.List;
 
 @Data
@@ -14,5 +15,6 @@ import java.util.List;
 @AllArgsConstructor
 public class CoronationTaskParseRequest {
 
+    @NotEmpty
     private List<CoronationTaskExcelImportVO> coronationTasks;
 }

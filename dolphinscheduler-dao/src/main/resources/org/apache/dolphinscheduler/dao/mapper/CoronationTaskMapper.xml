@@ -29,10 +29,10 @@
         from t_ds_coronation_task
         where 1 = 1
         <if test="workflowInstanceName != null and workflowInstanceName != ''">
-            and workflow_instance_name = #{workflowInstanceName}
+            and workflow_instance_name like concat ('%', #{workflowInstanceName}, '%')
         </if>
         <if test="taskName != null and taskName != ''">
-            and task_name = #{taskName}
+            and task_name like concat ('%', #{taskName}, '%')
         </if>
     </select>
 

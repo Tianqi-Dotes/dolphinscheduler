@@ -47,23 +47,26 @@ public class IsolationMetadataManager {
                         .stream()
                         .collect(Collectors.toMap(IsolationTask::getId, Function.identity()));
 
-        List<IsolationTask> needToAddIsolationTasks = isolationTasksInMemory.values()
+        List<IsolationTask> needToCancelIsolationTasks = isolationTasksInMemory.values()
                 .stream()
                 .filter(isolationTask -> !isolationTasksInDB.containsKey(isolationTask.getId()))
                 .collect(Collectors.toList());
 
-        List<IsolationTask> needToCancelIsolationTasks = isolationTasksInDB.values()
+        List<IsolationTask> needToAddIsolationTasks = isolationTasksInDB.values()
                 .stream()
                 .filter(isolationTask -> !isolationTasksInMemory.containsKey(isolationTask.getId()))
                 .collect(Collectors.toList());
 
         isolationTasksInMemory = isolationTasksInDB;
 
-        cancelIsolationTask(needToAddIsolationTasks);
-        addIsolationTask(needToCancelIsolationTasks);
+        cancelIsolationTask(needToCancelIsolationTasks);
+        addIsolationTask(needToAddIsolationTasks);
 
         stopWatch.stop();
-        log.info("Refresh isolation task from db finished, cost: {} ms", stopWatch.getTime());
+        log.info(
+                "Refresh isolation task from db finished, current isolationTaskSize: {}, needToCancelIsolationTask: {}, needToAddIsolationTasks: {}, cost: {} ms",
+                isolationTasksInMemory.size(), needToCancelIsolationTasks.size(), needToAddIsolationTasks.size(),
+                stopWatch.getTime());
     }
 
     public boolean isIsolatedTask(int workflowInstanceId, long taskCode) {
@@ -97,7 +100,7 @@ public class IsolationMetadataManager {
                 continue;
             }
             workflowExecuteRunnable.cancelTaskIsolation(needCancelIsolation.getTaskCode());
-            log.info("Backend offline isolation task, isolationTaskId: {}", needCancelIsolation.getId());
+            log.info("Backend cancel isolation task, isolationTaskId: {}", needCancelIsolation.getId());
         }
     }
 

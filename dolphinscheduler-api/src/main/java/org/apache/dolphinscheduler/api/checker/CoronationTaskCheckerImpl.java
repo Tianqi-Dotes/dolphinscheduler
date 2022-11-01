@@ -1,10 +1,7 @@
 package org.apache.dolphinscheduler.api.checker;
 
-import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.CORONATION_TASK_CANCEL;
-import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.CORONATION_TASK_PARSE;
-import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.CORONATION_TASK_VIEW;
-import static org.apache.dolphinscheduler.api.enums.Status.PROCESS_DEFINE_NOT_EXIST;
-
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.exceptions.ServiceException;
 import org.apache.dolphinscheduler.api.service.ProjectService;
@@ -19,14 +16,17 @@ import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.dao.entity.Project;
 import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.dao.repository.ProcessDefinitionDao;
-
-import java.util.List;
-
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.CORONATION_TASK_CANCEL;
+import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.CORONATION_TASK_PARSE;
+import static org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant.CORONATION_TASK_VIEW;
+import static org.apache.dolphinscheduler.api.enums.Status.PROCESS_DEFINE_NOT_EXIST;
 
 @Slf4j
 @Service
@@ -68,8 +68,6 @@ public class CoronationTaskCheckerImpl implements CoronationTaskChecker {
             throw new ServiceException(Status.PROCESS_INSTANCE_NOT_BELONG_TO_CURRENT_PROJECT);
         }
         projectService.checkProjectAndAuth(loginUser, project, project.getCode(), CORONATION_TASK_PARSE);
-        // todo: check if the vos can submit coronation tasks
-        // if there already exist coronaton task in db or the upstream task contains coronation task, we cannot submit
 
     }
 

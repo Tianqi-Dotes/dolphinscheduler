@@ -38,7 +38,9 @@ import org.apache.dolphinscheduler.remote.utils.Host;
 import org.apache.dolphinscheduler.service.process.ProcessService;
 import org.apache.dolphinscheduler.service.registry.RegistryClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -81,6 +83,9 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
     @Autowired
     private TaskInstanceDao taskInstanceDao;
 
+    @Autowired
+    private IsolationTaskService isolationTaskService;
+
     @Override
     public void submitTaskIsolations(@NonNull User loginUser,
                                      long projectCode,
@@ -118,10 +123,16 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
     }
 
     @Override
-    @Transactional
     public void cancelTaskIsolation(@NonNull User loginUser,
                                     long projectCode,
                                     long isolationId) {
+        isolationTaskService.cancelTaskIsolationInDB(loginUser, projectCode, isolationId);
+        sendIsolationTaskRefreshRequestToMaster();
+    }
+
+    @Transactional
+    @Override
+    public void cancelTaskIsolationInDB(@NonNull User loginUser, long projectCode, long isolationId) {
         IsolationTask isolationTask = isolationTaskDao.queryById(isolationId)
                 .orElseThrow(() -> new ServiceException(ISOLATION_TASK_NOT_EXIST));
 
@@ -129,9 +140,9 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
         ProcessInstance processInstance = processInstanceDao.queryProcessInstanceById(workflowInstanceId)
                 .orElseThrow(() -> new ServiceException(Status.PROCESS_INSTANCE_NOT_EXIST));
         isolationTaskChecker.checkCanCancelTaskIsolation(loginUser, projectCode, processInstance, isolationTask);
+
         isolationTaskDao.deleteById(isolationTask.getId());
         insertRecoveryCommandIfNeeded(processInstance);
-        sendIsolationTaskRefreshRequestToMaster();
     }
 
     @Override
@@ -148,19 +159,39 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
                 request.getTaskName(),
                 pageNo,
                 pageSize);
-        List<IsolationTaskListingVO> isolationTaskListingVOList = iPage.getRecords()
+
+        List<IsolationTask> isolationTasks = iPage.getRecords();
+
+        Map<Integer, Map<Long, TaskInstance>> taskInstanceMap = taskInstanceDao
+                .queryValidatedTaskInstanceByWorkflowInstanceId(
+                        isolationTasks.stream().map(IsolationTask::getWorkflowInstanceId).collect(Collectors.toList()))
+                .stream()
+                .collect(HashMap::new,
+                        (map, taskInstance) -> {
+                            map.computeIfAbsent(taskInstance.getProcessInstanceId(), k -> new HashMap<>())
+                                    .put(taskInstance.getTaskCode(), taskInstance);
+                        },
+                        Map::putAll);
+
+        List<IsolationTaskListingVO> isolationTaskListingVOList = isolationTasks
                 .stream()
                 .map(isolationTask -> {
-                    return IsolationTaskListingVO.builder()
+                    TaskInstance taskInstance =
+                            taskInstanceMap.get(isolationTask.getWorkflowInstanceId()).get(isolationTask.getTaskCode());
+
+                    IsolationTaskListingVO vo = IsolationTaskListingVO.builder()
                             .id(isolationTask.getId())
                             .workflowInstanceId(isolationTask.getWorkflowInstanceId())
                             .workflowInstanceName(isolationTask.getWorkflowInstanceName())
-                            // todo: set task status
                             .taskName(isolationTask.getTaskName())
                             .taskCode(isolationTask.getTaskCode())
                             .createTime(isolationTask.getCreateTime())
                             .updateTime(isolationTask.getUpdateTime())
                             .build();
+                    if (taskInstance != null) {
+                        vo.setTaskStatus(taskInstance.getState());
+                    }
+                    return vo;
                 }).collect(Collectors.toList());
         PageInfo<IsolationTaskListingVO> pageInfo = new PageInfo<>(pageNo, pageSize);
         pageInfo.setTotal((int) iPage.getTotal());

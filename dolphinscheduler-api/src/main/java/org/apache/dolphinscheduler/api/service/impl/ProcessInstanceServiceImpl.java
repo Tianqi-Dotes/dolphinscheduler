@@ -43,6 +43,7 @@ import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.common.utils.ParameterUtils;
 import org.apache.dolphinscheduler.common.utils.placeholder.BusinessTimeUtils;
+import org.apache.dolphinscheduler.dao.dto.TaskRuntimeContext;
 import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.dao.entity.ProcessTaskRelationLog;
@@ -813,6 +814,8 @@ public class ProcessInstanceServiceImpl extends BaseServiceImpl implements Proce
             task.getEndDate().add(endTime.getTime());
             task.setIsoStart(startTime);
             task.setIsoEnd(endTime);
+            task.setTaskRuntimeContext(
+                    JSONUtils.parseObject(taskInstance.getRuntimeContext(), TaskRuntimeContext.class));
             task.setStatus(taskInstance.getState().toString());
             task.setExecutionDate(taskInstance.getStartTime());
             task.setDuration(DateUtils.format2Readable(endTime.getTime() - startTime.getTime()));

@@ -13,6 +13,8 @@ public interface TaskInstanceDao {
 
     List<TaskInstance> queryValidatedTaskInstanceByWorkflowInstanceId(Integer workflowInstanceId);
 
+    List<TaskInstance> queryValidatedTaskInstanceByWorkflowInstanceId(List<Integer> workflowInstanceId);
+
     List<TaskInstance> queryValidatedTaskInstanceByWorkflowInstanceIdAndStatus(@NonNull Integer workflowInstanceId,
                                                                                @NonNull ExecutionStatus status);
 

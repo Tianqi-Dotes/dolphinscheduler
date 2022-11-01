@@ -506,33 +506,37 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
             LoggerUtils.setWorkflowInstanceIdMDC(processInstance.getId());
             // restart the killed/ paused task
             Set<String> needToCancelIsolationTaskCodes = DagHelper.getAllPostNodes(Long.toString(taskCode), dag);
+            boolean needToRecoveryTask = false;
             for (String needToCancelIsolationTaskCodeStr : needToCancelIsolationTaskCodes) {
                 Long isolationTaskCode = Long.valueOf(needToCancelIsolationTaskCodeStr);
                 Integer isolateTimes = isolatedTaskCodesToTimesMap.get(isolationTaskCode);
                 if (isolateTimes == null) {
                     logger.warn(
-                            "The current task has not been isolated, so it don't need to offline isolation, taskCode: {}",
+                            "The current task has not been isolated, so it don't need to cancel isolation, taskCode: {}",
                             isolationTaskCode);
                     continue;
                 }
                 if (isolateTimes == 1) {
                     isolatedTaskCodesToTimesMap.remove(isolationTaskCode);
-                    ITaskProcessor iTaskProcessor = activeTaskProcessorMaps.get(isolationTaskCode);
-                    if (iTaskProcessor == null) {
+                    TaskInstance taskInstance = getTaskInstance(isolationTaskCode).orElse(null);
+                    if (taskInstance == null) {
                         // the current task has not been submitted
                         continue;
                     }
                     // the current task has no pre isolation, restart
-                    TaskInstance taskInstance = iTaskProcessor.taskInstance();
                     if (taskInstance.getState() == ExecutionStatus.PAUSE_BY_ISOLATION) {
+                        completeTaskMap.remove(isolationTaskCode);
                         taskInstance.setState(ExecutionStatus.SUBMITTED_SUCCESS);
                         addTaskToStandByList(taskInstance);
+                        needToRecoveryTask = true;
                         logger.info(
                                 "Cancel isolation task, the current task state is pause_by_isolation, change to submitted_success and add it back to standbyList");
                         continue;
                     }
                     if (taskInstance.getState() == ExecutionStatus.KILL_BY_ISOLATION) {
+                        completeTaskMap.remove(isolationTaskCode);
                         addTaskToStandByList(cloneCancelIsolationTaskInstance(taskInstance));
+                        needToRecoveryTask = true;
                         logger.info(
                                 "Cancel isolation task, the current task state is kill_by_isolation, change to submitted_success and add it back to standbyList");
                         continue;
@@ -540,8 +544,12 @@ public class WorkflowExecuteRunnable implements Callable<WorkflowSubmitStatue> {
                 } else {
                     isolatedTaskCodesToTimesMap.put(isolationTaskCode, isolateTimes - 1);
                 }
-
             }
+            if (needToRecoveryTask) {
+                submitStandByTask();
+            }
+        } catch (StateEventHandleException e) {
+            logger.error("Cancel isolation task failed, taskCode: {}", taskCode, e);
         } finally {
             LoggerUtils.removeWorkflowInstanceIdMDC();
         }

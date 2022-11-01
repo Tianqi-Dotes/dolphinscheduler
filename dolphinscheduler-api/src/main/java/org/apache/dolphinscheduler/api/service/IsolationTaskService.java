@@ -19,6 +19,10 @@ public interface IsolationTaskService {
                              long projectCode,
                              long isolationId);
 
+    void cancelTaskIsolationInDB(@NonNull User loginUser,
+                                 long projectCode,
+                                 long isolationId);
+
     PageInfo<IsolationTaskListingVO> listingTaskIsolation(@NonNull User loginUser,
                                                           long projectCode,
                                                           @NonNull IsolationTaskListingRequest request);

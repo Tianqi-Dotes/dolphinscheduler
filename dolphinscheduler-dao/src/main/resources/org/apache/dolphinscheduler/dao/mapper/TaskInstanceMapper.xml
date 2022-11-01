@@ -63,6 +63,17 @@
         and state = #{status}
         and flag = #{flag}
     </select>
+    <select id="findValidTaskListByProcessIds" resultType="org.apache.dolphinscheduler.dao.entity.TaskInstance">
+        select
+        <include refid="baseSql"/>
+        from t_ds_task_instance
+        WHERE process_instance_id in
+        <foreach collection="processInstanceIds" index="index" item="processInstanceId" open="(" separator=","
+                 close=")">
+            #{processInstanceId}
+        </foreach>
+        and flag = #{flag}
+    </select>
     <select id="queryByHostAndStatus" resultType="org.apache.dolphinscheduler.dao.entity.TaskInstance">
         select
         <include refid="baseSql"/>

@@ -107,7 +107,10 @@ public class CoronationMetadataManager {
             }
         }
         stopWatch.stop();
-        log.info("Refresh coronation task from DB finished, cost: {} ms", stopWatch.getTime());
+        log.info(
+                "Refresh coronation task from DB finished, coronationTaskSize: {}, needToAddCoronationTasksSize: {}, needToCancelCoronationTaskSize: {}, cost: {} ms",
+                coronationTaskInMemory.size(), addCoronationTasks.size(), deleteCoronationTasks.size(),
+                stopWatch.getTime());
     }
 
     public boolean isCoronationTask(int workflowInstanceId, long taskCode) {

@@ -12,6 +12,7 @@ public interface CoronationTaskDao {
 
     IPage<CoronationTask> pageQueryCoronationTask(String workflowInstanceName,
                                                   String taskName,
+                                                  long projectCode,
                                                   @NonNull Integer pageNo,
                                                   @NonNull Integer pageSize);
 

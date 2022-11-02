@@ -12,6 +12,7 @@ import java.util.List;
 public interface CoronationTaskMapper extends BaseMapper<CoronationTask> {
 
     IPage<CoronationTask> pageQueryCoronationTask(Page<IsolationTask> page,
+                                                  @Param("projectCode") long projectCode,
                                                   @Param("workflowInstanceName") String workflowInstanceName,
                                                   @Param("taskName") String taskName);
 

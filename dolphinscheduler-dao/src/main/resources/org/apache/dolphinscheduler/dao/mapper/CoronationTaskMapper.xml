@@ -20,14 +20,14 @@
 <mapper namespace="org.apache.dolphinscheduler.dao.mapper.CoronationTaskMapper">
     <sql id="baseSql">
         id
-        ,workflow_instance_id, workflow_instance_name, task_name, task_code, forbidden_upstream_tasks, create_time, update_time
+        ,project_code, workflow_instance_id, workflow_instance_name, task_name, task_code, forbidden_upstream_tasks, create_time, update_time
     </sql>
 
     <select id="pageQueryCoronationTask" resultType="org.apache.dolphinscheduler.dao.entity.CoronationTask">
         select
         <include refid="baseSql"/>
         from t_ds_coronation_task
-        where 1 = 1
+        where project_code = #{projectCode}
         <if test="workflowInstanceName != null and workflowInstanceName != ''">
             and workflow_instance_name like concat ('%', #{workflowInstanceName}, '%')
         </if>
@@ -48,6 +48,7 @@
 
     <insert id="batchInsert">
         insert into t_ds_coronation_task (
+        project_code,
         workflow_instance_id,
         workflow_instance_name,
         task_name,
@@ -57,6 +58,7 @@
         values
         <foreach collection="coronationTasks" item="coronationTask" separator=",">
             (
+            #{coronationTask.projectCode},
             #{coronationTask.workflowInstanceId},
             #{coronationTask.workflowInstanceName},
             #{coronationTask.taskName},

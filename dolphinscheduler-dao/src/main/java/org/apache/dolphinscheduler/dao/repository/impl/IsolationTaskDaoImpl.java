@@ -2,7 +2,6 @@ package org.apache.dolphinscheduler.dao.repository.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.dolphinscheduler.dao.entity.IsolationTask;
@@ -25,10 +24,11 @@ public class IsolationTaskDaoImpl implements IsolationTaskDao {
     @Override
     public IPage<IsolationTask> pageQueryIsolationTask(String workflowInstanceName,
                                                        String taskName,
+                                                       long projectCode,
                                                        int pageNumber,
                                                        int pageSize) {
         Page<IsolationTask> page = new Page<>(pageNumber, pageSize);
-        return isolationTaskMapper.pageQuery(page, workflowInstanceName, taskName);
+        return isolationTaskMapper.pageQuery(page, projectCode, workflowInstanceName, taskName);
     }
 
     @Override

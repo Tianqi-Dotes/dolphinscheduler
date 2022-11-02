@@ -26,10 +26,11 @@ public class CoronationTaskDaoImpl implements CoronationTaskDao {
 
     @Override
     public IPage<CoronationTask> pageQueryCoronationTask(String workflowInstanceName, String taskName,
+                                                         long projectCode,
                                                          @NonNull Integer pageNo,
                                                          @NonNull Integer pageSize) {
         Page<IsolationTask> page = new Page<>(pageNo, pageSize);
-        return coronationTaskMapper.pageQueryCoronationTask(page, workflowInstanceName, taskName);
+        return coronationTaskMapper.pageQueryCoronationTask(page, projectCode, workflowInstanceName, taskName);
     }
 
     @Override

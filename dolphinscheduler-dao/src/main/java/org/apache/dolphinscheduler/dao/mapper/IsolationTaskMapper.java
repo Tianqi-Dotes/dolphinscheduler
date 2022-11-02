@@ -11,6 +11,7 @@ import java.util.List;
 public interface IsolationTaskMapper extends BaseMapper<IsolationTask> {
 
     IPage<IsolationTask> pageQuery(IPage<IsolationTask> page,
+                                   @Param("projectCode") long projectCode,
                                    @Param("workflowInstanceName") String workflowInstanceName,
                                    @Param("taskName") String taskName);
 

@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.dolphinscheduler.plugin.task.api.enums.ExecutionStatus;
 
 import java.util.Date;
 
@@ -28,8 +27,6 @@ public class IsolationTask {
     private String taskName;
 
     private long taskCode;
-
-    private ExecutionStatus taskStatus;
 
     private Date createTime;
 

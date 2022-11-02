@@ -20,6 +20,8 @@ public class CoronationTask {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
+    private long projectCode;
+
     private int workflowInstanceId;
 
     private String workflowInstanceName;

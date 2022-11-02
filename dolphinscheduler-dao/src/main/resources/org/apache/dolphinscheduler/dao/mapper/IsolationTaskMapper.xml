@@ -20,19 +20,19 @@
 <mapper namespace="org.apache.dolphinscheduler.dao.mapper.IsolationTaskMapper">
     <sql id="baseSql">
         id
-        ,workflow_instance_id, workflow_instance_name, task_name, task_code, create_time, update_time
+        , project_code, workflow_instance_id, workflow_instance_name, task_name, task_code, create_time, update_time
     </sql>
 
     <select id="pageQuery" resultType="org.apache.dolphinscheduler.dao.entity.IsolationTask">
         select
         <include refid="baseSql"/>
         from t_ds_isolation_task
-        where 1 = 1
+        where project_code = #{projectCode}
         <if test="workflowInstanceName != null and workflowInstanceName != ''">
-            and workflow_instance_name = #{workflowInstanceName}
+            and workflow_instance_name like concat ('%', #{workflowInstanceName}, '%')
         </if>
         <if test="taskName != null and taskName != ''">
-            and task_name = #{taskName}
+            and task_name like concat ('%', #{taskName}, '%')
         </if>
     </select>
 
@@ -62,6 +62,7 @@
 
     <insert id="batchInsert">
         insert into t_ds_isolation_task (
+        project_code,
         workflow_instance_id,
         workflow_instance_name,
         task_name,
@@ -70,6 +71,7 @@
         values
         <foreach collection="isolationTasks" item="isolationTask" separator=",">
             (
+            #{isolationTask.projectCode},
             #{isolationTask.workflowInstanceId},
             #{isolationTask.workflowInstanceName},
             #{isolationTask.taskName},

@@ -14,6 +14,7 @@ public interface IsolationTaskDao {
      */
     IPage<IsolationTask> pageQueryIsolationTask(String workflowInstanceName,
                                                 String taskName,
+                                                long projectCode,
                                                 int pageNumber,
                                                 int pageSize);
 

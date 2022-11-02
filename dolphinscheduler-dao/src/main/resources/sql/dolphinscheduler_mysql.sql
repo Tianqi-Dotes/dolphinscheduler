@@ -1954,6 +1954,7 @@ DROP TABLE if exists `t_ds_isolation_task`;
 CREATE TABLE `t_ds_isolation_task`
 (
     `id`                     bigint       NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+    `project_code`           bigint       NOT NULL COMMENT 'project code',
     `workflow_instance_id`   bigint       NOT NULL COMMENT 'workflowInstanceId of the isolation task',
     `workflow_instance_name` varchar(255) NOT NULL COMMENT 'workflowInstanceName of the isolation task',
     `task_name`              varchar(255) NOT NULL COMMENT 'isolation task name',
@@ -1961,6 +1962,7 @@ CREATE TABLE `t_ds_isolation_task`
     `create_time`            timestamp NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time`            timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
+    KEY                      `project_code_index` (`project_code`),
     UNIQUE KEY `workflow_instance_task__unique` (`workflow_instance_id`,`task_code`)
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8;
 
@@ -1971,6 +1973,7 @@ DROP TABLE if exists `t_ds_coronation_task`;
 CREATE TABLE `t_ds_coronation_task`
 (
     `id`                       bigint       NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+    `project_code`             bigint       NOT NULL COMMENT 'project code',
     `workflow_instance_id`     bigint       NOT NULL COMMENT 'workflowInstanceId of the isolation task',
     `workflow_instance_name`   varchar(255) NOT NULL COMMENT 'workflowInstanceName of the isolation task',
     `task_name`                varchar(255) NOT NULL COMMENT 'isolation task name',
@@ -1979,5 +1982,6 @@ CREATE TABLE `t_ds_coronation_task`
     `create_time`              timestamp NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time`              timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
+    KEY                        `project_code_index` (`project_code`),
     UNIQUE KEY `workflow_instance_task__unique` (`workflow_instance_id`,`task_code`)
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8;

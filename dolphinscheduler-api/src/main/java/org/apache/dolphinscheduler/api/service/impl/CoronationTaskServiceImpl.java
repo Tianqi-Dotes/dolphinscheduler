@@ -44,7 +44,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -154,6 +153,7 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
                                         }).collect(Collectors.toList());
 
                         return CoronationTask.builder()
+                                .projectCode(projectCode)
                                 .workflowInstanceId(vo.getWorkflowInstanceId())
                                 .workflowInstanceName(vo.getWorkflowInstanceName())
                                 .taskName(vo.getTaskNode())
@@ -196,6 +196,7 @@ public class CoronationTaskServiceImpl implements CoronationTaskService {
         IPage<CoronationTask> iPage = coronationTaskDao.pageQueryCoronationTask(
                 request.getWorkflowInstanceName(),
                 request.getTaskName(),
+                projectCode,
                 pageNo,
                 pageSize);
 

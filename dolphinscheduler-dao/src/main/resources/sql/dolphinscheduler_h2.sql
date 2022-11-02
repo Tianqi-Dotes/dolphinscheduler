@@ -1986,6 +1986,7 @@ DROP TABLE if exists `t_ds_isolation_task`;
 CREATE TABLE `t_ds_isolation_task`
 (
     `id`                     bigint       NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+    `project_code`           bigint       NOT NULL COMMENT 'project code',
     `workflow_instance_id`   bigint       NOT NULL COMMENT 'workflowInstanceId of the isolation task',
     `workflow_instance_name` varchar(255) NOT NULL COMMENT 'workflowInstanceName of the isolation task',
     `task_name`              varchar(255) NOT NULL COMMENT 'isolation task name',
@@ -2002,6 +2003,7 @@ DROP TABLE if exists `t_ds_coronation_task`;
 CREATE TABLE `t_ds_coronation_task`
 (
     `id`                       bigint       NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+    `project_code`             bigint       NOT NULL COMMENT 'project code',
     `workflow_instance_id`     bigint       NOT NULL COMMENT 'workflowInstanceId of the isolation task',
     `workflow_instance_name`   varchar(255) NOT NULL COMMENT 'workflowInstanceName of the isolation task',
     `task_name`                varchar(255) NOT NULL COMMENT 'isolation task name',

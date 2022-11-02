@@ -157,6 +157,7 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
         IPage<IsolationTask> iPage = isolationTaskDao.pageQueryIsolationTask(
                 request.getWorkflowInstanceName(),
                 request.getTaskName(),
+                projectCode,
                 pageNo,
                 pageSize);
 

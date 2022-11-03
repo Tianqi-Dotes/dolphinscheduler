@@ -109,6 +109,7 @@ public class IsolationTaskServiceImpl implements IsolationTaskService {
 
             List<IsolationTask> isolationTasks = entry.getValue().stream().map(vo -> {
                 return IsolationTask.builder()
+                        .projectCode(projectCode)
                         .workflowInstanceId(vo.getWorkflowInstanceId())
                         .workflowInstanceName(vo.getWorkflowInstanceName())
                         .taskName(vo.getTaskName())

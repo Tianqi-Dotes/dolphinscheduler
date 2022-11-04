@@ -17,7 +17,9 @@
 
 package org.apache.dolphinscheduler.plugin.datasource.postgresql.param;
 
-import org.apache.commons.lang.StringUtils;
+import com.google.auto.service.AutoService;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.dolphinscheduler.plugin.datasource.api.datasource.AbstractDataSourceProcessor;
 import org.apache.dolphinscheduler.plugin.datasource.api.datasource.BaseDataSourceParamDTO;
 import org.apache.dolphinscheduler.plugin.datasource.api.datasource.DataSourceProcessor;
@@ -28,15 +30,11 @@ import org.apache.dolphinscheduler.spi.enums.DbType;
 import org.apache.dolphinscheduler.spi.utils.Constants;
 import org.apache.dolphinscheduler.spi.utils.JSONUtils;
 
-import org.apache.commons.collections4.MapUtils;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import com.google.auto.service.AutoService;
 
 @AutoService(DataSourceProcessor.class)
 public class PostgreSQLDataSourceProcessor extends AbstractDataSourceProcessor {

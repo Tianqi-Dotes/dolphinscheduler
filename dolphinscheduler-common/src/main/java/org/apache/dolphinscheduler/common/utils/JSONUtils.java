@@ -29,10 +29,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.type.CollectionType;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.experimental.UtilityClass;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.spi.utils.StringUtils;
@@ -67,14 +71,16 @@ public class JSONUtils {
     /**
      * can use static singleton, inject: just make sure to reuse!
      */
-    private static final ObjectMapper objectMapper = new ObjectMapper()
+    private static final ObjectMapper objectMapper = JsonMapper.builder()
             .configure(FAIL_ON_UNKNOWN_PROPERTIES, false)
             .configure(ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true)
             .configure(READ_UNKNOWN_ENUM_VALUES_AS_NULL, true)
             .configure(REQUIRE_SETTERS_FOR_GETTERS, true)
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-            .setTimeZone(TimeZone.getDefault())
-            .setDateFormat(new SimpleDateFormat(Constants.YYYY_MM_DD_HH_MM_SS));
+            .addModule(new JavaTimeModule())
+            .defaultTimeZone(TimeZone.getDefault())
+            .defaultDateFormat(new SimpleDateFormat(Constants.YYYY_MM_DD_HH_MM_SS))
+            .build();
 
     public static ArrayNode createArrayNode() {
         return objectMapper.createArrayNode();

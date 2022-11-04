@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "build:prod": "vue-tsc --noEmit && vite build --mode production",
+    "build:prod": "vite build --mode production",
     "preview": "vite preview",
     "lint": "eslint src --fix --ext .ts,.tsx,.vue",
     "prettier": "prettier --write \"src/**/*.{vue,ts,tsx}\""
@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@types/js-cookie": "^3.0.1",
+    "@types/lodash": "^4.14.182",
     "@types/node": "^16.11.25",
     "@types/nprogress": "^0.2.0",
     "@types/qs": "^6.9.7",

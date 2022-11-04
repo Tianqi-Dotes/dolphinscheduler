@@ -965,6 +965,8 @@ CREATE TABLE t_ds_worker_group
 -- ----------------------------
 -- Records of t_ds_worker_group
 -- ----------------------------
+INSERT  INTO `t_ds_worker_group`
+VALUES (1, 'default', null, current_timestamp, current_timestamp, null, null);
 
 -- ----------------------------
 -- Table structure for t_ds_version

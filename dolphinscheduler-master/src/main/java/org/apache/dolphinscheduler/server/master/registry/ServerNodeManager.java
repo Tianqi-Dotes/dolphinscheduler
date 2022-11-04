@@ -41,6 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 @Service
 public class ServerNodeManager implements InitializingBean {
@@ -194,7 +196,20 @@ public class ServerNodeManager implements InitializingBean {
     protected Set<String> getWorkerAddressByWorkerGroup(Map<String, WorkerHeartBeat> newWorkerNodeInfo,
                                                         WorkerGroupDto wg) {
         Set<String> nodes = new HashSet<>();
-        String[] addrs = wg.getAddrList().split(Constants.COMMA);
+        String name = wg.getName();
+        WorkerGroupDto.WorkerGroupExtraParam workerGroupExtraParam = wg.getWorkerGroupExtraParam();
+        if (Constants.DEFAULT.equals(name)) {
+            // All worker address is in default worker group
+            nodes = newWorkerNodeInfo.keySet();
+            if (workerGroupExtraParam != null
+                    && org.apache.commons.lang3.StringUtils.isNotEmpty(workerGroupExtraParam.getFilterList())) {
+                String filterAddrs = workerGroupExtraParam.getFilterList();
+                List<String> filterList = Arrays.asList(filterAddrs.split(Constants.COMMA));
+                nodes = nodes.stream().filter(addr -> !filterList.contains(addr)).collect(Collectors.toSet());
+            }
+            return nodes;
+        }
+        List<String> addrs = Arrays.asList(wg.getAddrList().split(Constants.COMMA));
         for (String addr : addrs) {
             if (newWorkerNodeInfo.containsKey(addr)) {
                 nodes.add(addr);

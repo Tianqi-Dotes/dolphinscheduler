@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
@@ -46,6 +47,8 @@ import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.GlobalMemory;
 import oshi.hardware.HardwareAbstractionLayer;
+
+import com.google.common.collect.Sets;
 
 /**
  * os utils
@@ -174,7 +177,7 @@ public class OSUtils {
         return Double.parseDouble(df.format(cpuUsage));
     }
 
-    public static List<String> getUserList() {
+    public static Set<String> getUserList() {
         try {
             if (SystemUtils.IS_OS_MAC) {
                 return getUserListFromMac();
@@ -187,7 +190,7 @@ public class OSUtils {
             logger.error(e.getMessage(), e);
         }
 
-        return Collections.emptyList();
+        return Collections.emptySet();
     }
 
     /**
@@ -195,8 +198,8 @@ public class OSUtils {
      *
      * @return user list
      */
-    private static List<String> getUserListFromLinux() throws IOException {
-        List<String> userList = new ArrayList<>();
+    private static Set<String> getUserListFromLinux() throws IOException {
+        Set<String> userList = Sets.newHashSet();
 
         try (
                 BufferedReader bufferedReader = new BufferedReader(
@@ -219,13 +222,13 @@ public class OSUtils {
      *
      * @return user list
      */
-    private static List<String> getUserListFromMac() throws IOException {
+    private static Set<String> getUserListFromMac() throws IOException {
         String result = exeCmd("dscl . list /users");
         if (!StringUtils.isEmpty(result)) {
-            return Arrays.asList(result.split("\n"));
+            return Sets.newHashSet(result.split("\n"));
         }
 
-        return Collections.emptyList();
+        return Collections.emptySet();
     }
 
     /**
@@ -233,7 +236,7 @@ public class OSUtils {
      *
      * @return user list
      */
-    private static List<String> getUserListFromWindows() throws IOException {
+    private static Set<String> getUserListFromWindows() throws IOException {
         String result = exeCmd("net user");
         String[] lines = result.split("\n");
 
@@ -259,7 +262,7 @@ public class OSUtils {
             }
         }
 
-        List<String> users = new ArrayList<>();
+        Set<String> users = Sets.newHashSet();
         while (startPos <= endPos) {
             users.addAll(Arrays.asList(PATTERN.split(lines[startPos])));
             startPos++;
@@ -288,25 +291,12 @@ public class OSUtils {
     }
 
     /**
-     * create user
+     * create tenant
      *
-     * @param userName user name
-     */
-    public static void createUserIfAbsent(String userName) {
-        // if not exists this user, then create
-        if (!getUserList().contains(userName)) {
-            boolean isSuccess = createUser(userName);
-            logger.info("create user {} {}", userName, isSuccess ? "success" : "fail");
-        }
-    }
-
-    /**
-     * create user
-     *
-     * @param userName user name
+     * @param tenantName tenant name
      * @return true if creation was successful, otherwise false
      */
-    public static boolean createUser(String userName) {
+    public static boolean createTenant(String tenantName) {
         try {
             String userGroup = getGroup();
             if (StringUtils.isEmpty(userGroup)) {
@@ -315,15 +305,16 @@ public class OSUtils {
                 return false;
             }
             if (SystemUtils.IS_OS_MAC) {
-                createMacUser(userName, userGroup);
+                createMacUser(tenantName, userGroup);
             } else if (SystemUtils.IS_OS_WINDOWS) {
-                createWindowsUser(userName, userGroup);
+                createWindowsUser(tenantName, userGroup);
             } else {
-                createLinuxUser(userName, userGroup);
+                createLinuxUser(tenantName, userGroup);
             }
+            logger.info("create tenant {} success", tenantName);
             return true;
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            logger.error("create tenant {} fail", tenantName, e);
         }
 
         return false;

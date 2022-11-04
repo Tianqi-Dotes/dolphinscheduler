@@ -46,6 +46,7 @@ public class WorkerConfig implements Validator {
     private int listenPort = 1234;
     private int execThreads = 10;
     private Duration heartbeatInterval = Duration.ofSeconds(10);
+    private Duration refreshSystemUserInterval = Duration.ofSeconds(10);
     private int hostWeight = 100;
     private boolean tenantAutoCreate = true;
     private boolean tenantDistributedUser = false;
@@ -76,6 +77,9 @@ public class WorkerConfig implements Validator {
         if (workerConfig.getHeartbeatInterval().getSeconds() <= 0) {
             errors.rejectValue("heartbeat-interval", null, "should be a valid duration");
         }
+        if (workerConfig.getRefreshSystemUserInterval().getSeconds() <= 0) {
+            errors.rejectValue("refresh-system-user-interval", null, "should be a valid duration");
+        }
         if (workerConfig.getMaxCpuLoadAvg() <= 0) {
             workerConfig.setMaxCpuLoadAvg(Runtime.getRuntime().availableProcessors() * 2);
         }
@@ -101,6 +105,7 @@ public class WorkerConfig implements Validator {
         logger.info("Worker config: listenPort -> {}", listenPort);
         logger.info("Worker config: execThreads -> {}", execThreads);
         logger.info("Worker config: heartbeatInterval -> {}", heartbeatInterval);
+        logger.info("Worker config: refreshSystemUserInterval -> {}", refreshSystemUserInterval);
         logger.info("Worker config: hostWeight -> {}", hostWeight);
         logger.info("Worker config: tenantAutoCreate -> {}", tenantAutoCreate);
         logger.info("Worker config: tenantDistributedUser -> {}", tenantDistributedUser);

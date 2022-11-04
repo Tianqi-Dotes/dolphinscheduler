@@ -17,18 +17,21 @@
 
 package org.apache.dolphinscheduler.server.worker.runner;
 
-import lombok.NonNull;
 import org.apache.dolphinscheduler.common.storage.StorageOperate;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
+import org.apache.dolphinscheduler.server.worker.cache.TenantCacheManager;
 import org.apache.dolphinscheduler.server.worker.config.WorkerConfig;
 import org.apache.dolphinscheduler.server.worker.rpc.WorkerMessageSender;
 import org.apache.dolphinscheduler.service.alert.AlertClientService;
 import org.apache.dolphinscheduler.service.task.TaskPluginManager;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
+
+import lombok.NonNull;
 
 public abstract class WorkerDelayTaskExecuteRunnable extends WorkerTaskExecuteRunnable implements Delayed {
 
@@ -38,9 +41,10 @@ public abstract class WorkerDelayTaskExecuteRunnable extends WorkerTaskExecuteRu
                                              @NonNull WorkerMessageSender workerMessageSender,
                                              @NonNull AlertClientService alertClientService,
                                              @NonNull TaskPluginManager taskPluginManager,
-                                             @Nullable StorageOperate storageOperate) {
+                                             @Nullable StorageOperate storageOperate,
+                                             @Nullable TenantCacheManager tenantCacheManager) {
         super(taskExecutionContext, workerConfig, masterAddress, workerMessageSender, alertClientService,
-                taskPluginManager, storageOperate);
+                taskPluginManager, storageOperate, tenantCacheManager);
     }
 
     @Override

@@ -17,9 +17,8 @@
 
 package org.apache.dolphinscheduler.server.worker.runner;
 
-import com.google.common.base.Strings;
-import lombok.NonNull;
-import org.apache.commons.collections4.CollectionUtils;
+import static org.apache.dolphinscheduler.common.Constants.SINGLE_SLASH;
+
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.WarningType;
 import org.apache.dolphinscheduler.common.storage.StorageOperate;
@@ -38,22 +37,29 @@ import org.apache.dolphinscheduler.plugin.task.api.model.TaskAlertInfo;
 import org.apache.dolphinscheduler.plugin.task.api.utils.LogUtils;
 import org.apache.dolphinscheduler.remote.command.CommandType;
 import org.apache.dolphinscheduler.server.utils.ProcessUtils;
+import org.apache.dolphinscheduler.server.worker.cache.TenantCacheManager;
 import org.apache.dolphinscheduler.server.worker.config.WorkerConfig;
 import org.apache.dolphinscheduler.server.worker.rpc.WorkerMessageSender;
 import org.apache.dolphinscheduler.server.worker.utils.Checker;
 import org.apache.dolphinscheduler.service.alert.AlertClientService;
 import org.apache.dolphinscheduler.service.task.TaskPluginManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
+import org.apache.commons.collections4.CollectionUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.util.Date;
 import java.util.List;
 
-import static org.apache.dolphinscheduler.common.Constants.SINGLE_SLASH;
+import javax.annotation.Nullable;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Strings;
+
+import lombok.NonNull;
 
 public abstract class WorkerTaskExecuteRunnable implements Runnable {
 
@@ -67,6 +73,7 @@ public abstract class WorkerTaskExecuteRunnable implements Runnable {
     protected final @NonNull AlertClientService alertClientService;
     protected final @NonNull TaskPluginManager taskPluginManager;
     protected final @Nullable StorageOperate storageOperate;
+    protected final @Nullable TenantCacheManager tenantCacheManager;
 
     protected @Nullable AbstractTask task;
 
@@ -77,7 +84,8 @@ public abstract class WorkerTaskExecuteRunnable implements Runnable {
                                         @NonNull WorkerMessageSender workerMessageSender,
                                         @NonNull AlertClientService alertClientService,
                                         @NonNull TaskPluginManager taskPluginManager,
-                                        @Nullable StorageOperate storageOperate) {
+                                        @Nullable StorageOperate storageOperate,
+                                        @Nullable TenantCacheManager tenantCacheManager) {
         this.taskExecutionContext = taskExecutionContext;
         this.workerConfig = workerConfig;
         this.masterAddress = masterAddress;
@@ -85,6 +93,7 @@ public abstract class WorkerTaskExecuteRunnable implements Runnable {
         this.alertClientService = alertClientService;
         this.taskPluginManager = taskPluginManager;
         this.storageOperate = storageOperate;
+        this.tenantCacheManager = tenantCacheManager;
         String taskLogName = LoggerUtils.buildTaskId(taskExecutionContext.getFirstSubmitTime(),
                 taskExecutionContext.getProcessDefineCode(),
                 taskExecutionContext.getProcessDefineVersion(),
@@ -199,7 +208,7 @@ public abstract class WorkerTaskExecuteRunnable implements Runnable {
         workerMessageSender.sendMessageWithRetry(taskExecutionContext, masterAddress, CommandType.TASK_EXECUTE_RUNNING);
         logger.info("Set task status to {}", ExecutionStatus.RUNNING_EXECUTION);
 
-        Checker.checkTenantExist(workerConfig, taskExecutionContext);
+        Checker.checkTenantExist(workerConfig, tenantCacheManager, taskExecutionContext);
         logger.info("TenantCode:{} check success", taskExecutionContext.getTenantCode());
 
         Checker.createProcessLocalPathIfAbsent(taskExecutionContext);

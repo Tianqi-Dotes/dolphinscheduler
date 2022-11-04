@@ -17,10 +17,6 @@
 
 package org.apache.dolphinscheduler.server.worker.processor;
 
-import com.google.common.base.Preconditions;
-import io.micrometer.core.annotation.Counted;
-import io.micrometer.core.annotation.Timed;
-import io.netty.channel.Channel;
 import org.apache.dolphinscheduler.common.storage.StorageOperate;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
@@ -33,6 +29,7 @@ import org.apache.dolphinscheduler.remote.command.CommandType;
 import org.apache.dolphinscheduler.remote.command.TaskDispatchCommand;
 import org.apache.dolphinscheduler.remote.processor.NettyRequestProcessor;
 import org.apache.dolphinscheduler.server.utils.LogUtils;
+import org.apache.dolphinscheduler.server.worker.cache.TenantCacheManager;
 import org.apache.dolphinscheduler.server.worker.config.WorkerConfig;
 import org.apache.dolphinscheduler.server.worker.metrics.TaskMetrics;
 import org.apache.dolphinscheduler.server.worker.rpc.WorkerMessageSender;
@@ -41,10 +38,17 @@ import org.apache.dolphinscheduler.server.worker.runner.WorkerManagerThread;
 import org.apache.dolphinscheduler.server.worker.runner.WorkerTaskExecuteRunnableFactoryBuilder;
 import org.apache.dolphinscheduler.service.alert.AlertClientService;
 import org.apache.dolphinscheduler.service.task.TaskPluginManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import com.google.common.base.Preconditions;
+
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.netty.channel.Channel;
 
 /**
  * Used to handle {@link CommandType#TASK_DISPATCH_REQUEST}
@@ -80,6 +84,9 @@ public class TaskDispatchProcessor implements NettyRequestProcessor {
 
     @Autowired(required = false)
     private StorageOperate storageOperate;
+
+    @Autowired
+    private TenantCacheManager tenantCacheManager;
 
     @Counted(value = "ds.task.execution.count", description = "task execute total count")
     @Timed(value = "ds.task.execution.duration", percentiles = {0.5, 0.75, 0.95, 0.99}, histogram = true)
@@ -130,7 +137,8 @@ public class TaskDispatchProcessor implements NettyRequestProcessor {
                             workerMessageSender,
                             alertClientService,
                             taskPluginManager,
-                            storageOperate)
+                            storageOperate,
+                            tenantCacheManager)
                     .createWorkerTaskExecuteRunnable();
             // submit task to manager
             boolean offer = workerManager.offer(workerTaskExecuteRunnable);

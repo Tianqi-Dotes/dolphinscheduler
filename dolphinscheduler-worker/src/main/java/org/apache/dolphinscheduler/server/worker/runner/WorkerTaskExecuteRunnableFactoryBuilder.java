@@ -17,17 +17,19 @@
 
 package org.apache.dolphinscheduler.server.worker.runner;
 
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
 import org.apache.dolphinscheduler.common.storage.StorageOperate;
 import org.apache.dolphinscheduler.plugin.task.api.TaskChannel;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
+import org.apache.dolphinscheduler.server.worker.cache.TenantCacheManager;
 import org.apache.dolphinscheduler.server.worker.config.WorkerConfig;
 import org.apache.dolphinscheduler.server.worker.rpc.WorkerMessageSender;
 import org.apache.dolphinscheduler.service.alert.AlertClientService;
 import org.apache.dolphinscheduler.service.task.TaskPluginManager;
 
 import javax.annotation.Nullable;
+
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class WorkerTaskExecuteRunnableFactoryBuilder {
@@ -38,7 +40,8 @@ public class WorkerTaskExecuteRunnableFactoryBuilder {
                                                                                                        @NonNull WorkerMessageSender workerMessageSender,
                                                                                                        @NonNull AlertClientService alertClientService,
                                                                                                        @NonNull TaskPluginManager taskPluginManager,
-                                                                                                       @Nullable StorageOperate storageOperate) {
+                                                                                                       @Nullable StorageOperate storageOperate,
+                                                                                                       @NonNull TenantCacheManager tenantCacheManager) {
         String taskType = taskExecutionContext.getTaskType();
         TaskChannel taskChannel = taskPluginManager.getTaskChannel(taskType);
         switch (taskChannel.getTaskExecuteType()) {
@@ -49,7 +52,8 @@ public class WorkerTaskExecuteRunnableFactoryBuilder {
                         workerMessageSender,
                         alertClientService,
                         taskPluginManager,
-                        storageOperate);
+                        storageOperate,
+                        tenantCacheManager);
             case ASYNC:
                 return new AsyncWorkerDelayTaskExecuteRunnableFactory(taskExecutionContext,
                         workerConfig,
@@ -57,7 +61,8 @@ public class WorkerTaskExecuteRunnableFactoryBuilder {
                         workerMessageSender,
                         alertClientService,
                         taskPluginManager,
-                        storageOperate);
+                        storageOperate,
+                        tenantCacheManager);
             default:
                 throw new IllegalArgumentException(String.format("The current taskExecuteType: %s is invalidated",
                         taskChannel.getTaskExecuteType()));

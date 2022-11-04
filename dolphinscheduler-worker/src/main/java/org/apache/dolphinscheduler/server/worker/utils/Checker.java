@@ -17,21 +17,21 @@
 
 package org.apache.dolphinscheduler.server.worker.utils;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang.SystemUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.dolphinscheduler.common.exception.StorageOperateNoConfiguredException;
 import org.apache.dolphinscheduler.common.storage.StorageOperate;
 import org.apache.dolphinscheduler.common.utils.CommonUtils;
 import org.apache.dolphinscheduler.common.utils.FileUtils;
-import org.apache.dolphinscheduler.common.utils.OSUtils;
 import org.apache.dolphinscheduler.common.utils.PropertyUtils;
 import org.apache.dolphinscheduler.plugin.task.api.TaskException;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
+import org.apache.dolphinscheduler.server.worker.cache.TenantCacheManager;
 import org.apache.dolphinscheduler.server.worker.config.WorkerConfig;
 import org.apache.dolphinscheduler.server.worker.metrics.WorkerServerMetrics;
-import org.slf4j.Logger;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.SystemUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,9 +45,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+
 public class Checker {
 
-    public static void checkTenantExist(WorkerConfig workerConfig, TaskExecutionContext taskExecutionContext) {
+    public static void checkTenantExist(WorkerConfig workerConfig, TenantCacheManager tenantCacheManager, TaskExecutionContext taskExecutionContext) {
         try {
             String tenantCode = taskExecutionContext.getTenantCode();
             boolean osUserExistFlag;
@@ -56,13 +58,12 @@ public class Checker {
             // create tenants,so TenantAutoCreate has no effect
             if (workerConfig.isTenantDistributedUser() && SystemUtils.IS_OS_LINUX) {
                 // use the id command to judge in linux
-                osUserExistFlag = OSUtils.existTenantCodeInLinux(tenantCode);
+                osUserExistFlag = tenantCacheManager.contains(tenantCode);
             } else if (CommonUtils.isSudoEnable() && workerConfig.isTenantAutoCreate()) {
                 // if not exists this user, then create
-                OSUtils.createUserIfAbsent(tenantCode);
-                osUserExistFlag = OSUtils.getUserList().contains(tenantCode);
+                osUserExistFlag = tenantCacheManager.createTenantIfAbsent(tenantCode);
             } else {
-                osUserExistFlag = OSUtils.getUserList().contains(tenantCode);
+                osUserExistFlag = tenantCacheManager.contains(tenantCode);
             }
             if (!osUserExistFlag) {
                 throw new TaskException(

@@ -24,6 +24,7 @@ import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContextCacheManager;
 import org.apache.dolphinscheduler.plugin.task.api.async.AsyncTaskCallbackFunction;
 import org.apache.dolphinscheduler.plugin.task.api.async.AsyncTaskExecutionContext;
+import org.apache.dolphinscheduler.server.worker.cache.TenantCacheManager;
 import org.apache.dolphinscheduler.server.worker.config.WorkerConfig;
 import org.apache.dolphinscheduler.server.worker.rpc.WorkerMessageSender;
 import org.apache.dolphinscheduler.service.alert.AlertClientService;
@@ -41,9 +42,10 @@ public class AsyncWorkerDelayTaskExecuteRunnable extends WorkerDelayTaskExecuteR
                                                @NonNull WorkerMessageSender workerMessageSender,
                                                @NonNull AlertClientService alertClientService,
                                                @NonNull TaskPluginManager taskPluginManager,
-                                               @Nullable StorageOperate storageOperate) {
+                                               @Nullable StorageOperate storageOperate,
+                                               @NonNull TenantCacheManager tenantCacheManager) {
         super(taskExecutionContext, workerConfig, workflowMasterAddress, workerMessageSender, alertClientService,
-                taskPluginManager, storageOperate);
+                taskPluginManager, storageOperate, tenantCacheManager);
     }
 
     @Override

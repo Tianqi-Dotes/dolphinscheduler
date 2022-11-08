@@ -287,6 +287,9 @@ interface ITaskParams {
   udfs?: string
   connParams?: string
   targetJobName?: string
+  hiveCliOptions?: string
+  hiveSqlScript?: string
+  hiveCliTaskExecutionType?: string
 }
 
 interface INodeData

@@ -155,6 +155,9 @@ $bgLight: #ffffff;
     &.icon-emr {
       background-image: url('/images/task-icons/emr.png');
     }
+    &.icon-hivecli {
+      background-image: url('/images/task-icons/hivecli.png');
+    }
   }
 
   &:hover {
@@ -212,6 +215,9 @@ $bgLight: #ffffff;
       }
       &.icon-emr {
         background-image: url('/images/task-icons/emr_hover.png');
+      }
+      &.icon-hivecli {
+        background-image: url('/images/task-icons/hivecli_hover.png');
       }
     }
   }

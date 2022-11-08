@@ -303,6 +303,12 @@ export function formatParams(data: INodeData): {
   if (data.taskType === 'PIGEON') {
     taskParams.targetJobName = data.targetJobName
   }
+  if (data.taskType === 'HIVECLI') {
+    taskParams.hiveCliTaskExecutionType = data.hiveCliTaskExecutionType
+    taskParams.hiveSqlScript = data.hiveSqlScript
+    taskParams.hiveCliOptions = data.hiveCliOptions
+  }
+
   let timeoutNotifyStrategy = ''
   if (data.timeoutNotifyStrategy) {
     if (data.timeoutNotifyStrategy.length === 1) {
